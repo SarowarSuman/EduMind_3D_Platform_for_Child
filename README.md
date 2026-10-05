@@ -1,4 +1,4 @@
-[README (2).md](https://github.com/user-attachments/files/33077717/README.2.md)
+(https://github.com/user-attachments/files/33077717/README.2.md)
 <div align="center">
 
 <img src="assets/banner.svg" alt="EduMind banner" width="100%"/>
