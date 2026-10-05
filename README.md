@@ -1,5 +1,4 @@
 <div align="center">
-<div align="center">
 
 <img src="assets/banner.svg" alt="EduMind banner" width="100%"/>
 
@@ -9,7 +8,7 @@
 
 <br/>
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-Open_EduMind-7c3aed?style=for-the-badge&logo=googlechrome&logoColor=white)](https://sarowarsuman.github.io/EduMind_3D_Platform_for_Child/)
+<a href="https://sarowarsuman.github.io/EduMind_3D_Platform_for_Child/"><img src="assets/live-demo.svg" alt="Live Demo: open EduMind in your browser" width="400"/></a>
 
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
@@ -201,7 +200,7 @@ Demo mode is on by default, so you can try everything right away.
 
 ## 👤 Author
 
-**Sarowar Suman**
+**Suman**
 Software Engineering, Daffodil International University, Bangladesh
 
 ---
