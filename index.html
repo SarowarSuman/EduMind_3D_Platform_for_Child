@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduMind — AI 3D Classroom</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Hind Siliguri','Poppins',system-ui,sans-serif}
+html,body{width:100%;height:100%;overflow:hidden;background:#f5dcc4}
+canvas{display:block}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:2;background:radial-gradient(ellipse at center,transparent 55%,rgba(90,45,10,.3) 100%)}
+#topbar{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.78);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.9);border-radius:40px;padding:8px 18px;box-shadow:0 8px 30px rgba(120,60,20,.2)}
+.logo{font-size:20px}
+.brand{font-weight:700;font-size:18px;background:linear-gradient(90deg,#7c3aed,#c026d3);-webkit-background-clip:text;background-clip:text;color:transparent}
+.chip{display:flex;align-items:center;gap:6px;font-size:12.5px;color:#6b6470;background:rgba(0,0,0,.05);border-radius:20px;padding:4px 11px;font-weight:600}
+.chip b{color:#4c3a8f}
+.dot{width:8px;height:8px;border-radius:50%;background:#22c55e;animation:pulse 1.6s infinite}
+.dot.busy{background:#f59e0b}
+.dot.err{background:#ef4444}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.icon-btn{border:none;background:rgba(0,0,0,.05);border-radius:50%;width:30px;height:30px;font-size:14px;cursor:pointer;transition:.2s}
+.icon-btn:hover{background:rgba(124,58,237,.15);transform:rotate(30deg)}
+#welcome{position:fixed;inset:0;z-index:8;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none;transition:opacity 1.2s;background:radial-gradient(ellipse at center,rgba(255,244,230,.6),transparent 70%)}
+#welcome.gone{opacity:0}
+.w-emoji{font-size:64px;animation:wave 1.4s infinite}
+@keyframes wave{0%,100%{transform:rotate(0)}25%{transform:rotate(18deg)}75%{transform:rotate(-12deg)}}
+#welcome h1{font-size:34px;font-weight:700;color:#3d2a6d;margin-top:8px}
+#welcome p{font-size:15.5px;color:#7a6a86;max-width:430px;margin-top:6px}
+#panel{position:fixed;top:70px;right:14px;bottom:14px;width:352px;z-index:5;display:flex;flex-direction:column;background:rgba(255,255,255,.82);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.95);border-radius:24px;box-shadow:0 12px 40px rgba(120,60,20,.24);overflow:hidden;transition:transform .35s,opacity .35s}
+#panel.closed{transform:translateX(115%);opacity:0;pointer-events:none}
+#tabs{display:flex;align-items:center;gap:6px;padding:10px 12px 4px}
+.tab{border:none;background:rgba(0,0,0,.05);border-radius:10px;width:32px;height:30px;font-size:14px;cursor:pointer;transition:.2s}
+.tab:hover,.tab.on{background:rgba(124,58,237,.16)}
+#closeChat{margin-left:auto}
+#chat{flex:1;overflow-y:auto;padding:12px 14px 8px;display:flex;flex-direction:column;gap:9px}
+#chat::-webkit-scrollbar{width:5px}
+#chat::-webkit-scrollbar-thumb{background:rgba(124,58,237,.3);border-radius:5px}
+.msg{max-width:84%;padding:9px 13px;border-radius:18px;font-size:13.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;animation:pop .25s ease}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1}}
+.msg.teacher{align-self:flex-start;background:#fff;color:#33323a;border:1px solid #eee;border-bottom-left-radius:6px;box-shadow:0 3px 10px rgba(0,0,0,.06)}
+.msg.user{align-self:flex-end;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;border-bottom-right-radius:6px;box-shadow:0 4px 12px rgba(109,40,217,.35)}
+.pill{align-self:center;font-size:11.5px;font-style:italic;color:#8b7fa0;background:rgba(124,58,237,.08);border:1px dashed rgba(124,58,237,.28);border-radius:20px;padding:4px 13px;animation:pop .25s ease;text-align:center;max-width:92%}
+.pill.warn{color:#b45309;background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.4);font-style:normal;font-weight:600}
+.typing{align-self:flex-start;display:flex;gap:4px;background:#fff;border:1px solid #eee;border-radius:18px;padding:12px 16px}
+.typing span{width:7px;height:7px;border-radius:50%;background:#b49ae0;animation:blink 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,100%{opacity:.25}50%{opacity:1;transform:translateY(-3px)}}
+#suggRow{display:flex;gap:6px;overflow-x:auto;padding:6px 12px;scrollbar-width:none}
+#suggRow::-webkit-scrollbar{display:none}
+.sugg{flex-shrink:0;border:none;background:linear-gradient(135deg,#f3ecff,#e9ddff);color:#6d28d9;font-size:11.5px;font-weight:600;border-radius:16px;padding:6px 12px;cursor:pointer;transition:.2s}
+.sugg:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(124,58,237,.25)}
+#inputRow{display:flex;align-items:center;gap:8px;padding:8px 12px}
+.clip{font-size:17px;opacity:.55}
+#msgInput{flex:1;border:none;outline:none;background:#f3effb;border-radius:20px;padding:10px 15px;font-size:13.5px;color:#3a2f52}
+#msgInput::placeholder{color:#a89bc4}
+#sendBtn{border:none;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;width:38px;height:38px;border-radius:50%;font-size:15px;cursor:pointer;transition:.2s;flex-shrink:0}
+#sendBtn:hover{transform:scale(1.1)}
+#ctrlRow{display:flex;justify-content:center;gap:20px;padding:6px 0 14px}
+.ctrl{width:47px;height:47px;border-radius:50%;border:none;font-size:16px;cursor:pointer;transition:.2s;color:#fff;font-weight:700}
+.ctrl:hover{transform:scale(1.12)}
+.ctrl.purple{background:linear-gradient(135deg,#8b5cf6,#6d28d9)}
+.ctrl.red{background:#ef4444;box-shadow:0 4px 14px rgba(239,68,68,.4)}
+.ctrl.red2{background:#f87171}
+.ctrl.green{background:#10b981;box-shadow:0 4px 14px rgba(16,185,129,.4)}
+.ctrl.active{animation:micPulse 1.1s infinite}
+@keyframes micPulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}70%{box-shadow:0 0 0 16px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
+#reopen{position:fixed;right:16px;bottom:16px;z-index:5;width:52px;height:52px;border-radius:50%;border:none;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;font-size:20px;cursor:pointer;box-shadow:0 8px 24px rgba(109,40,217,.45);display:none}
+#reopen.show{display:block}
+#boardBtn{position:fixed;left:14px;bottom:16px;z-index:5;border:none;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);border-radius:24px;padding:9px 16px;font-size:13px;font-weight:600;color:#6d28d9;cursor:pointer;box-shadow:0 6px 20px rgba(120,60,20,.2);display:none}
+#boardBtn.show{display:block}
+#quizCard{position:fixed;left:14px;top:80px;width:min(340px,92vw);z-index:6;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);border:1px solid #fff;border-radius:22px;box-shadow:0 14px 44px rgba(60,20,120,.28);padding:16px;animation:pop .3s ease;display:none}
+#quizCard.show{display:block}
+.q-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.q-ico{font-size:20px}
+.q-title{font-weight:700;font-size:14px;color:#3d2a6d;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q-count{font-size:12px;color:#8b7fa0;font-weight:600}
+.q-x{border:none;background:rgba(0,0,0,.05);border-radius:50%;width:26px;height:26px;font-size:12px;cursor:pointer}
+.q-dots{display:flex;gap:5px;margin-bottom:10px}
+.qd{width:9px;height:9px;border-radius:50%;background:#e3dcf3;transition:.3s}
+.qd.cur{background:#8b5cf6;transform:scale(1.3)}
+.qd.ok{background:#22c55e}.qd.bad{background:#ef4444}
+.q-text{font-size:14px;font-weight:600;color:#332a4a;line-height:1.5;margin-bottom:12px;min-height:42px}
+.opt{display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:2px solid #ece7f8;background:#faf8ff;border-radius:13px;padding:9px 12px;font-size:13px;color:#4a4062;cursor:pointer;margin-bottom:7px;transition:.15s;font-weight:500}
+.opt:hover:not(:disabled){border-color:#c4b0f5;background:#f4efff;transform:translateX(3px)}
+.opt:disabled{cursor:default;opacity:.75}
+.opt b{width:24px;height:24px;border-radius:8px;background:#ede7fa;color:#6d28d9;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.opt.sel-ok{border-color:#22c55e;background:#effdf4;opacity:1}
+.opt.sel-ok b{background:#22c55e;color:#fff}
+.opt.sel-bad{border-color:#ef4444;background:#fef2f2;opacity:1}
+.opt.sel-bad b{background:#ef4444;color:#fff}
+.opt.reveal{border-color:#86efac}
+.q-nav{display:flex;justify-content:space-between;margin-top:6px}
+.q-nav button{border:none;border-radius:12px;padding:8px 16px;font-size:12.5px;font-weight:700;cursor:pointer;background:#f1ecfb;color:#6d28d9;transition:.2s;font-family:'Hind Siliguri'}
+.q-nav button:disabled{opacity:.35;cursor:default}
+.q-nav button:not(:disabled):hover{transform:translateY(-2px)}
+.q-result{text-align:center;padding:10px 0}
+.q-result .big{font-size:42px;font-weight:700;background:linear-gradient(90deg,#7c3aed,#c026d3);-webkit-background-clip:text;background-clip:text;color:transparent}
+.q-result .qmsg{font-size:14px;color:#5c5470;font-weight:600;margin:4px 0 12px}
+.q-review{max-height:180px;overflow-y:auto;text-align:left;font-size:12px;color:#4a4062;line-height:1.6;background:#faf8ff;border-radius:12px;padding:10px;margin-bottom:10px}
+.q-review .ok{color:#16a34a;font-weight:700}
+.q-review .bad{color:#dc2626;font-weight:700}
+#settingsModal{position:fixed;inset:0;z-index:9;background:rgba(30,15,50,.45);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center}
+#settingsModal.hidden{display:none}
+.modal-card{background:#fff;border-radius:22px;padding:26px;width:min(430px,92vw);max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:pop .3s ease}
+.modal-card h3{color:#3d2a6d;margin-bottom:14px;font-size:20px}
+.modal-card label{font-size:13px;font-weight:600;color:#6b5f85;display:block;margin-bottom:6px}
+#keyInput{width:100%;border:2px solid #e8e2f5;border-radius:12px;padding:10px 14px;font-size:13px;outline:none;font-family:monospace}
+#keyInput:focus{border-color:#8b5cf6}
+.hint{font-size:11.5px;color:#9a8fb5;margin:8px 0 14px;line-height:1.5}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.btn{border:none;border-radius:12px;padding:10px 15px;font-size:13px;font-weight:600;cursor:pointer;transition:.2s;font-family:'Hind Siliguri'}
+.btn.primary{background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff}
+.btn.ghost{background:#f1ecfb;color:#6d28d9}
+.btn.danger{background:#fef2f2;color:#dc2626}
+.btn.warnb{background:#fef9ec;color:#b45309}
+.btn:hover{transform:translateY(-2px)}
+#keyStatus{font-size:12.5px;margin-top:10px;font-weight:600;color:#16a34a;line-height:1.5;word-break:break-word}
+#keyStatus.bad{color:#dc2626}
+#keyStatus small{display:block;color:#9a8fb5;font-weight:500;margin-top:4px;font-size:11px}
+.set-row{display:flex;align-items:center;justify-content:space-between;background:#faf8ff;border-radius:12px;padding:10px 14px;margin-top:8px;font-size:13px;font-weight:600;color:#5c5470}
+.switch{position:relative;width:42px;height:24px}
+.switch input{opacity:0;width:0;height:0}
+.sl{position:absolute;inset:0;background:#ddd5f0;border-radius:20px;cursor:pointer;transition:.25s}
+.sl:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.25s}
+.switch input:checked+.sl{background:#8b5cf6}
+.switch input:checked+.sl:before{transform:translateX(18px)}
+@media(max-width:760px){
+#panel{top:auto;left:10px;right:10px;bottom:10px;width:auto;height:56vh}
+#topbar{width:95%;gap:7px;padding:6px 10px}.brand{font-size:14px}.chip{font-size:10.5px;padding:3px 8px}
+#welcome h1{font-size:26px}}
+</style>
+</head>
+<body>
+<div id="vignette"></div>
+<div id="topbar">
+<span class="logo">🧠</span>
+<span class="brand">EduMind</span>
+<span class="chip"><span class="dot" id="statusDot"></span><span id="statusText">Online</span></span>
+<span class="chip">📚 <b id="topicsCount">০</b></span>
+<span class="chip">💎 <b id="gems">০</b></span>
+<span class="chip">🔥 <b id="streak">১</b></span>
+<button class="icon-btn" id="settingsBtn">⚙️</button>
+</div>
+<div id="welcome">
+<div class="w-emoji">👋</div>
+<h1>Welcome to EduMind!</h1>
+<p>তোমার নিজের 3D ক্লাসরুম! যা খুশি জিজ্ঞাসা করো — গলায় বলো 🎤 বা লিখো। শিখবে মজায় মজায়! ✨</p>
+</div>
+<div id="panel">
+<div id="tabs">
+<button class="tab on" id="tabChat" title="Chat">💬</button>
+<button class="tab" id="tabQuiz" title="Quiz">🎯</button>
+<button class="tab" id="tabBoard" title="Board">🖼️</button>
+<button class="tab" id="tabTeacher" title="Teacher swap">🔄</button>
+<button class="tab" id="closeChat" title="Close">✕</button>
+</div>
+<div id="chat"></div>
+<div id="suggRow"></div>
+<div id="inputRow">
+<span class="clip">📎</span>
+<input id="msgInput" placeholder="যা জানতে চাও লিখো, বা 🎤 চেপে বলো…" autocomplete="off">
+<button id="sendBtn" title="পাঠাও">➤</button>
+</div>
+<div id="ctrlRow">
+<button id="langBtn" class="ctrl purple" title="ভাষা">বাং</button>
+<button id="micBtn" class="ctrl red" title="কথা বলো">🎤</button>
+<button id="quizBtn" class="ctrl green" title="কুইজ">🎯</button>
+<button id="stopBtn" class="ctrl red2" title="থামাও">🛑</button>
+</div>
+</div>
+<button id="reopen" title="Chat খোলো">💬</button>
+<button id="boardBtn">🖼️ বোর্ড লুকাও</button>
+<div id="quizCard">
+<div class="q-head">
+<span class="q-ico">📝</span>
+<span class="q-title" id="qTitle">কুইজ</span>
+<span class="q-count" id="qCount">১/৫</span>
+<button class="q-x" id="qClose">✕</button>
+</div>
+<div class="q-dots" id="qDots"></div>
+<div id="qBody"></div>
+</div>
+<div id="settingsModal" class="hidden">
+<div class="modal-card">
+<h3>⚙️ Settings</h3>
+<label>🔑 Gemini API Key (সম্পূর্ণ ফ্রি)</label>
+<input id="keyInput" type="password" placeholder="AIza...">
+<p class="hint">👉 <b>aistudio.google.com</b> → Get API key → নতুন key বানাও। সেভ করলেই auto-test হবে। সমস্যা হলে <b>Test Key</b> চাপো। 🎙️ Voice-এর জন্য ফাইলটা <b>Chrome</b>-এ খোলো।</p>
+<div class="btn-row">
+<button class="btn primary" id="saveKey">💾 Save + Test</button>
+<button class="btn warnb" id="testKey">🔍 Test Key</button>
+<button class="btn ghost" id="swapTeacher">🔄 Teacher বদলাও</button>
+<button class="btn danger" id="resetProg">🗑️ Progress Reset</button>
+<button class="btn ghost" id="closeSettings">✖ বন্ধ</button>
+</div>
+<div class="set-row"><span>👂 উত্তর শেষে auto-listen (conversation mode)</span>
+<label class="switch"><input type="checkbox" id="autoListen" checked><span class="sl"></span></label></div>
+<div class="set-row"><span>🔊 শিক্ষকের গলায় উত্তর পড়া</span>
+<label class="switch"><input type="checkbox" id="ttsOn" checked><span class="sl"></span></label></div>
+<div id="keyStatus"></div>
+</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id)};
+var lerp=function(a,b,k){return a+(b-a)*k},clamp=function(v,a,b){return Math.max(a,Math.min(b,v))};
+var easeOutBack=function(t){var c=1.70158;return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2)};
+var easeInOut=function(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2};
+var sleep=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
+var DB={get:function(k,d){try{var v=localStorage.getItem('edumind_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set:function(k,v){try{localStorage.setItem('edumind_'+k,JSON.stringify(v))}catch(e){}}};
+var BN_D='০১২৩৪৫৬৭৮৯';
+function bnNum(n){return String(n).replace(/\d/g,function(d){return BN_D[d]})}
+var state={lang:'bn',busy:false,talking:false,waving:false,waveStart:0,thinking:false,
+listening:false,autoListen:DB.get('autoListen',true),ttsOn:DB.get('ttsOn',true),
+boardTemplate:'generic',boardTitle:'',boardPoints:[],userStopped:false,keyOk:false};
+var gems=DB.get('gems',190),topics=DB.get('topics',0),streak=DB.get('streak',1);
+(function(){var today=new Date().toDateString(),last=DB.get('lastDay',null);
+if(last!==today){var y=new Date(Date.now()-864e5).toDateString();
+streak=(last===y)?streak+1:1;DB.set('streak',streak);DB.set('lastDay',today)}})();
+var AC=null;
+function beep(f,d,type,g,when){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+var o=AC.createOscillator(),ga=AC.createGain();o.type=type||'sine';o.frequency.value=f;
+var t0=AC.currentTime+(when||0);ga.gain.setValueAtTime(g||.12,t0);
+ga.gain.exponentialRampToValueAtTime(.001,t0+d);o.connect(ga);ga.connect(AC.destination);
+o.start(t0);o.stop(t0+d);}catch(e){}}
+var sndPop=function(){beep(520,.09,'triangle',.1)};
+var sndOk=function(){beep(660,.12,'sine',.12);beep(880,.18,'sine',.12,.12)};
+var sndBad=function(){beep(190,.25,'square',.06)};
+var sndWin=function(){beep(523,.12,'sine',.12);beep(659,.12,'sine',.12,.12);beep(784,.2,'sine',.14,.24)};
+var scene=new THREE.Scene();
+scene.background=new THREE.Color(0xf2d7ba);
+scene.fog=new THREE.Fog(0xf2d7ba,14,30);
+var camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.1,60);
+var renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputEncoding=THREE.sRGBEncoding;
+document.body.insertBefore(renderer.domElement,document.body.firstChild);
+var TG=new THREE.Vector3(0,1.35,-1.1);
+var camTheta=0,camPhi=1.44,camDist=4.6,intro=0;
+function updateCam(){
+camera.position.set(TG.x+camDist*Math.sin(camPhi)*Math.sin(camTheta),
+TG.y+camDist*Math.cos(camPhi),TG.z+camDist*Math.sin(camPhi)*Math.cos(camTheta));
+camera.lookAt(TG);}
+var dragging=false,lastX=0,lastY=0,moved=0;
+var dom=renderer.domElement;
+dom.addEventListener('pointerdown',function(e){dragging=true;lastX=e.clientX;lastY=e.clientY;moved=0});
+addEventListener('pointermove',function(e){if(!dragging)return;
+var dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;
+moved+=Math.abs(dx)+Math.abs(dy);
+if(intro>=1){camTheta=clamp(camTheta-dx*.005,-1.15,1.15);camPhi=clamp(camPhi-dy*.004,1.05,1.54);}});
+addEventListener('pointerup',function(){dragging=false});
+dom.addEventListener('wheel',function(e){if(intro>=1)camDist=clamp(camDist+e.deltaY*.004,2.6,7.5)},{passive:true});
+scene.add(new THREE.HemisphereLight(0xfff1e0,0xd9ac85,.6));
+var sunL=new THREE.DirectionalLight(0xffdcae,1.05);
+sunL.position.set(5,6.5,2.5);sunL.castShadow=true;sunL.shadow.mapSize.set(2048,2048);
+Object.assign(sunL.shadow.camera,{left:-8,right:8,top:8,bottom:-8,near:1,far:25});
+sunL.shadow.bias=-0.0004;scene.add(sunL);
+var glowL=new THREE.PointLight(0xffe8cf,.3,12);glowL.position.set(-2,3.6,0);scene.add(glowL);
+var glowR=new THREE.PointLight(0xffe8cf,.3,12);glowR.position.set(2,3.6,0);scene.add(glowR);
+var boardGlow=new THREE.PointLight(0x9b6bff,0,5);boardGlow.position.set(-2.7,2.1,-2.8);scene.add(boardGlow);
+function mat(c,rough){return new THREE.MeshStandardMaterial({color:c,roughness:rough==null?.9:rough})}
+function box(w,h,d,c,x,y,z,parent,rough){var m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c,rough));
+m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;(parent||scene).add(m);return m}
+function canvasTex(w,h,draw){var c=document.createElement('canvas');c.width=w;c.height=h;
+draw(c.getContext('2d'),w,h);var t=new THREE.CanvasTexture(c);t.anisotropy=4;return t}
+var floorTex=canvasTex(256,256,function(x){x.fillStyle='#e7c096';x.fillRect(0,0,256,256);
+for(var i=0;i<40;i++){x.fillStyle='rgba('+(170+Math.random()*40|0)+','+(110+Math.random()*40|0)+',60,.07)';
+x.fillRect(Math.random()*256,Math.random()*256,40,40);}
+x.strokeStyle='rgba(115,70,35,.5)';x.lineWidth=5;x.strokeRect(0,0,256,256);});
+floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping;floorTex.repeat.set(6,5);
+var floor=new THREE.Mesh(new THREE.PlaneGeometry(12,10),new THREE.MeshStandardMaterial({map:floorTex,roughness:.85}));
+floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+var wallC=0xf3d6bd;
+function wall(w,h,px,py,pz,ry){var m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat(wallC,.95));
+m.position.set(px,py,pz);m.rotation.y=ry;m.receiveShadow=true;scene.add(m)}
+wall(12,4,0,2,-5,0);wall(12,4,0,2,5,Math.PI);wall(10,4,-6,2,0,Math.PI/2);wall(10,4,6,2,0,-Math.PI/2);
+var ceil=new THREE.Mesh(new THREE.PlaneGeometry(12,10),mat(0xead2bb,.95));
+ceil.rotation.x=Math.PI/2;ceil.position.y=4;scene.add(ceil);
+box(1.6,.06,.5,0xfff6e8,-1.8,3.96,0);box(1.6,.06,.5,0xfff6e8,1.8,3.96,0);
+(function(){var g=new THREE.Group();g.position.set(5.97,2.3,.9);g.rotation.y=-Math.PI/2;scene.add(g);
+box(1.5,1.5,.06,0xfdf3e0,0,0,0,g,.3);
+box(1.6,.08,.1,0x9c6a3e,0,.78,0,g);box(1.6,.08,.1,0x9c6a3e,0,-.78,0,g);
+box(.08,1.6,.1,0x9c6a3e,-.78,0,0,g);box(.08,1.6,.1,0x9c6a3e,.78,0,0,g);
+box(.05,1.5,.06,0x9c6a3e,0,0,0,g);
+var beam=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4),
+new THREE.MeshBasicMaterial({color:0xffe9c0,transparent:true,opacity:.18,side:THREE.DoubleSide}));
+beam.position.set(5.2,2,-.5);beam.rotation.set(.35,Math.PI/2.4,0);scene.add(beam);})();
+var chalkCanvas=document.createElement('canvas');chalkCanvas.width=1024;chalkCanvas.height=420;
+var chalkTex=new THREE.CanvasTexture(chalkCanvas);
+function drawChalk(topic){
+var x=chalkCanvas.getContext('2d'),w=1024,h=420;
+var g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,'#33523f');g.addColorStop(1,'#243c2e');
+x.fillStyle=g;x.fillRect(0,0,w,h);
+x.globalAlpha=.05;x.fillStyle='#fff';
+for(var i=0;i<60;i++)x.fillRect(Math.random()*w,Math.random()*h,30+Math.random()*80,2);
+x.globalAlpha=.9;x.fillStyle='#eef5ea';x.textAlign='center';
+x.font="600 52px 'Hind Siliguri',sans-serif";x.fillText('স্বাগতম! 👋',w/2,90);
+x.font="34px 'Hind Siliguri',sans-serif";x.globalAlpha=.8;
+x.fillText((topic?('আজকের পাঠ : '+topic):'আজকের পাঠ : সালোকসংশ্লেষণ 🌱'),w/2,160);
+x.font="30px 'Hind Siliguri',sans-serif";x.globalAlpha=.7;
+x.fillText('CO₂ + H₂O ---☀️--→ C₆H₁₂O₆ + O₂',w/2,240);
+x.globalAlpha=.6;x.strokeStyle='#eef5ea';x.lineWidth=3;
+x.beginPath();x.arc(140,310,42,0,7);x.stroke();
+x.beginPath();x.moveTo(560,310);x.lineTo(760,310);x.lineTo(700,265);x.stroke();
+x.globalAlpha=1;chalkTex.needsUpdate=true;}
+box(5.7,2.35,.08,0x8a5a34,0,2.1,-4.93);
+var board=new THREE.Mesh(new THREE.PlaneGeometry(5.5,2.18),new THREE.MeshBasicMaterial({map:chalkTex}));
+board.position.set(0,2.1,-4.88);scene.add(board);
+box(5.6,.07,.14,0x9c6a3e,0,.94,-4.85);
+box(.16,.03,.04,0xffffff,-1.2,.99,-4.82);box(.3,.12,.06,0x4a4a52,.9,1.03,-4.8);
+drawChalk(null);
+var corkTex=canvasTex(256,192,function(x){x.fillStyle='#d9a06b';x.fillRect(0,0,256,192);
+x.globalAlpha=.15;for(var i=0;i<300;i++){x.fillStyle=Math.random()>.5?'#8a5a2b':'#f0c08a';
+x.fillRect(Math.random()*256,Math.random()*192,3,3);}
+x.globalAlpha=1;
+[['#f9d9e8',30,26,-.1],['#d9f2d0',120,60,.14],['#fdeec2',60,110,.06]].forEach(function(a){
+x.save();x.translate(a[1],a[2]);x.rotate(a[3]);x.fillStyle=a[0];x.fillRect(0,0,58,44);
+x.fillStyle='#c0392b';x.beginPath();x.arc(29,5,4,0,7);x.fill();x.restore();});});
+function cork(px,py,pz,ry){var m=new THREE.Mesh(new THREE.PlaneGeometry(1.6,1.2),
+new THREE.MeshStandardMaterial({map:corkTex,roughness:.9}));
+m.position.set(px,py,pz);m.rotation.y=ry;scene.add(m)}
+cork(-3.6,2.15,-4.94,0);cork(3.6,2.15,-4.94,0);
+var clockG=new THREE.Group();clockG.position.set(0,3.42,-4.9);scene.add(clockG);
+clockG.add(new THREE.Mesh(new THREE.TorusGeometry(.3,.035,10,40),mat(0x3a3a40,.6)));
+clockG.add(new THREE.Mesh(new THREE.CircleGeometry(.28,32),new THREE.MeshBasicMaterial({color:0xfdfaf4})));
+for(var i=0;i<12;i++){var tk=new THREE.Mesh(new THREE.BoxGeometry(.012,.045,.005),mat(0x3a3a40));
+var a=i/12*Math.PI*2;tk.position.set(Math.sin(a)*.23,Math.cos(a)*.23,.01);tk.rotation.z=-a;clockG.add(tk)}
+function mkHand(l,w,c){var g=new THREE.Group();
+var m=new THREE.Mesh(new THREE.BoxGeometry(w,l,.008),new THREE.MeshBasicMaterial({color:c}));
+m.position.y=l/2-.02;g.add(m);g.position.z=.02;clockG.add(g);return g}
+var hourH=mkHand(.14,.028,0x222222),minH=mkHand(.2,.02,0x555555);
+var WOOD=0xc98850,WOOD2=0xb3763f;
+function desk(x,z,ry){var g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=ry;scene.add(g);
+box(1,.06,.6,WOOD,0,.72,0,g);
+[[-.44,-.25],[.44,-.25],[-.44,.25],[.44,.25]].forEach(function(p){box(.06,.7,.06,WOOD2,p[0],.36,p[1],g)});}
+function chair(x,z,ry){var g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=ry;scene.add(g);
+box(.42,.05,.4,WOOD2,0,.42,0,g);box(.42,.5,.05,WOOD2,0,.7,-.19,g);
+[[-.17,-.15],[.17,-.15],[-.17,.15],[.17,.15]].forEach(function(p){box(.05,.42,.05,0x9c6a3e,p[0],.21,p[1],g)});}
+[[-1.7,1.4,.08],[1.7,1.5,-.06],[-1.7,3.1,-.04],[1.7,3.2,.05],[0,4.1,0]].forEach(function(a){desk(a[0],a[1],a[2]*.3);chair(a[0],a[1]+.75,a[2]*.3)});
+(function(){var g=new THREE.Group();g.position.set(2.1,0,-3.9);g.rotation.y=-.4;scene.add(g);
+box(1.3,.07,.65,WOOD,0,.76,0,g);
+[[-.55,-.26],[.55,-.26],[-.55,.26],[.55,.26]].forEach(function(p){box(.07,.76,.07,WOOD2,p[0],.38,p[1],g)});
+var gt=canvasTex(128,64,function(x){x.fillStyle='#3d7fc4';x.fillRect(0,0,128,64);x.fillStyle='#4caf6d';
+[[20,20,16],[70,14,12],[100,38,14],[45,44,10]].forEach(function(c){x.beginPath();x.arc(c[0],c[1],c[2],0,7);x.fill()})});
+var globe=new THREE.Mesh(new THREE.SphereGeometry(.13,20,14),new THREE.MeshStandardMaterial({map:gt,roughness:.5}));
+globe.position.set(-.3,.98,0);globe.castShadow=true;g.add(globe);
+box(.25,.3,.06,0xa33c3c,.25,.95,0,g);})();
+(function(){for(var i=0;i<2;i++){var x=-5.35+i*.62;
+box(.58,1.9,.5,0xb9bec4,x,.95,-3.9);
+box(.5,.05,.02,0x8b9096,x,1.85,-3.63);
+box(.06,.18,.02,0x6f747a,x+.2,1.1,-3.64);
+for(var r=0;r<3;r++)box(.3,.02,.015,0x8b9096,x,1.55-r*.09,-3.64);}})();
+(function(){var g=new THREE.Group();g.position.set(5.15,0,-2.6);g.rotation.y=-Math.PI/2;scene.add(g);
+box(1.7,2.05,.34,0x8a5a34,0,1.02,0,g);
+var pal=[0xc0392b,0x27ae60,0x2980b9,0x8e44ad,0xf39c12,0x16a085,0xd35400];
+for(var row=0;row<3;row++){box(1.6,.04,.3,0xa06a3e,0,.5+row*.55,.02,g);var bx=-.72;
+while(bx<.7){var bw=.08+Math.random()*.1,bh=.36+Math.random()*.1;
+box(bw,bh,.24,pal[Math.floor(Math.random()*pal.length)],bx+bw/2,.52+row*.55+bh/2,0,g);bx+=bw+.02;}}})();
+(function(){var g=new THREE.Group();g.position.set(5.96,0,1.4);g.rotation.y=-Math.PI/2;scene.add(g);
+box(1,2.1,.06,0x9c6a3e,0,1.05,0,g);box(1.12,2.22,.04,0x7d5330,0,1.1,-.03,g);
+box(.05,.16,.03,0xd8b13c,.4,1.05,.05,g);})();
+var dustG=new THREE.Group();scene.add(dustG);
+(function(){var n=140,pos=new Float32Array(n*3);
+for(var i=0;i<n;i++){pos[i*3]=(Math.random()-.5)*9;pos[i*3+1]=.4+Math.random()*3.2;pos[i*3+2]=(Math.random()-.5)*8;}
+var geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+dustG.add(new THREE.Points(geo,new THREE.PointsMaterial({color:0xffe9c8,size:.025,transparent:true,opacity:.5})))})();
+var PRESETS=[
+{name:'Queen',skin:0xe8b48c,suit:0x2e3448,shirt:0xf5f5f5,tie:0x7a2030,hair:0x17171b,long:true},
+{name:'Abubokkor',skin:0xd9a077,suit:0x9aa0a8,shirt:0xffffff,tie:0x555b63,hair:0x14141a,long:false},
+{name:'Rupa',skin:0xe6b08a,suit:0x2f7d5b,shirt:0xfdf3e3,tie:0xd8b13c,hair:0x2a1a10,long:true}];
+var presetIdx=DB.get('teacher',0)%PRESETS.length,avatar=null;
+function buildTeacher(p){
+var g=new THREE.Group();g.position.set(0,0,-3.55);var A={group:g};
+var skin=mat(p.skin,.75),suitM=mat(p.suit,.85);
+[-1,1].forEach(function(s){box(.13,.72,.14,p.suit,s*.1,.42,0,g);box(.15,.08,.26,0x1c1c22,s*.1,.04,.04,g);});
+box(.4,.16,.26,p.suit,0,.85,0,g);
+A.torso=box(.5,.55,.28,p.suit,0,1.2,0,g);
+box(.12,.3,.02,p.shirt,0,1.3,.145,g);box(.05,.2,.025,p.tie,0,1.27,.155,g);
+box(.52,.06,.3,p.suit,0,.95,0,g);
+var neck=new THREE.Mesh(new THREE.CylinderGeometry(.055,.06,.1,10),skin);
+neck.position.y=1.51;neck.castShadow=true;g.add(neck);
+A.head=new THREE.Group();A.head.position.y=1.66;g.add(A.head);
+var skull=new THREE.Mesh(new THREE.SphereGeometry(.16,22,18),skin);
+skull.scale.set(1,1.08,1);skull.castShadow=true;A.head.add(skull);
+var hairM=mat(p.hair,.6);
+var hair=new THREE.Mesh(new THREE.SphereGeometry(.165,20,16),hairM);
+hair.scale.set(p.long?1.12:1.04,p.long?1.1:.85,p.long?1.12:1.04);
+hair.position.set(0,.05,p.long?-.02:-.03);A.head.add(hair);
+if(p.long)box(.3,.34,.1,p.hair,0,-.1,-.13,A.head);
+[-1,1].forEach(function(s){
+var eye=new THREE.Mesh(new THREE.SphereGeometry(.019,10,10),mat(0x201a1a,.4));
+eye.position.set(s*.06,.02,.145);A.head.add(eye);
+box(.05,.011,.01,p.hair,s*.06,.065,.148,A.head).rotation.z=s*-.12;
+var blush=new THREE.Mesh(new THREE.CircleGeometry(.018,10),
+new THREE.MeshBasicMaterial({color:0xf0a0a0,transparent:true,opacity:.35}));
+blush.position.set(s*.09,-.03,.15);A.head.add(blush);});
+var nose=new THREE.Mesh(new THREE.SphereGeometry(.016,8,8),mat(0xd69a72,.7));
+nose.position.set(0,-.015,.16);A.head.add(nose);
+A.mouth=box(.055,.02,.02,0x8c3a44,0,-.065,.145,A.head);
+function arm(side){var sh=new THREE.Group();sh.position.set(side*.3,1.42,0);g.add(sh);
+var up=new THREE.Mesh(new THREE.CylinderGeometry(.05,.045,.3,10),suitM);
+up.position.y=-.15;up.castShadow=true;sh.add(up);
+var el=new THREE.Group();el.position.y=-.3;sh.add(el);
+var fo=new THREE.Mesh(new THREE.CylinderGeometry(.042,.038,.28,10),suitM);
+fo.position.y=-.14;fo.castShadow=true;el.add(fo);
+var hd=new THREE.Mesh(new THREE.SphereGeometry(.055,12,10),skin);
+hd.position.y=-.3;hd.castShadow=true;el.add(hd);return{sh:sh,el:el}}
+var armL=arm(-1),armR=arm(1);
+A.shL=armL.sh;A.elL=armL.el;A.shR=armR.sh;A.elR=armR.el;
+A.shL.rotation.z=-.1;A.shR.rotation.z=.1;scene.add(g);return A;}
+function swapTeacher(){
+if(avatar)scene.remove(avatar.group);
+presetIdx=(presetIdx+1)%PRESETS.length;DB.set('teacher',presetIdx);
+avatar=buildTeacher(PRESETS[presetIdx]);
+showPill((state.lang==='bn'?'👩‍🏫 এখন পড়াচ্ছেন: ':'👩‍🏫 Now teaching: ')+PRESETS[presetIdx].name);}
+avatar=buildTeacher(PRESETS[presetIdx]);
+var bC=document.createElement('canvas');bC.width=1024;bC.height=640;
+var bX=bC.getContext('2d');
+var boardTex=new THREE.CanvasTexture(bC);
+var vBoard=new THREE.Mesh(new THREE.PlaneGeometry(3.1,1.94),
+new THREE.MeshBasicMaterial({map:boardTex,transparent:true}));
+vBoard.position.set(-2.75,2.15,-3.35);vBoard.rotation.y=.42;
+vBoard.scale.set(.001,.001,1);vBoard.visible=false;scene.add(vBoard);
+var boardAnim=1;
+function rrect(x,px,py,w,h,r){x.beginPath();x.moveTo(px+r,py);
+x.arcTo(px+w,py,px+w,py+h,r);x.arcTo(px+w,py+h,px,py+h,r);
+x.arcTo(px,py+h,px,py,r);x.arcTo(px,py,px+w,py,r);x.closePath()}
+function arrow(x,x1,y1,x2,y2,c,lw){x.strokeStyle=c;x.lineWidth=lw||4;x.beginPath();
+x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke();
+var a=Math.atan2(y2-y1,x2-x1);x.fillStyle=c;x.beginPath();
+x.moveTo(x2,y2);x.lineTo(x2-12*Math.cos(a-.4),y2-12*Math.sin(a-.4));
+x.lineTo(x2-12*Math.cos(a+.4),y2-12*Math.sin(a+.4));x.fill()}
+function btxt(x,txt,px,py,size,c,align,weight){x.fillStyle=c;x.textAlign=align||'left';
+x.font=(weight||'600')+' '+size+"px 'Hind Siliguri',sans-serif";x.fillText(txt,px,py)}
+function L(k){return state.lang==='bn'?k[0]:k[1]}
+var TPL={
+spaceDist:function(x,t){
+x.fillStyle='#0f172a';rrect(x,40,160,944,290,22);x.fill();
+for(var i=0;i<26;i++){var sx2=60+((i*173)%900),sy2=175+((i*97)%240);
+x.fillStyle='rgba(255,255,255,'+(0.35+0.55*Math.abs(Math.sin(t*2+i)))+')';
+x.beginPath();x.arc(sx2,sy2,1.6,0,7);x.fill();}
+var ex=190,ey=300,er=60,mx2=780,my=300,mr=24;
+var eg=x.createRadialGradient(ex-15,ey-15,10,ex,ey,er);
+eg.addColorStop(0,'#7dd3fc');eg.addColorStop(1,'#1d4ed8');
+x.fillStyle=eg;x.beginPath();x.arc(ex,ey,er,0,7);x.fill();
+x.fillStyle='#22c55e';[[ex-20,ey-10,14],[ex+15,ey+15,11],[ex+25,ey-22,9]].forEach(function(c){
+x.beginPath();x.ellipse(c[0],c[1],c[2],c[2]*.7,0,0,7);x.fill();});
+btxt(x,L(['🌍 পৃথিবী','🌍 Earth']),ex,ey+er+32,25,'#e2e8f0','center');
+x.fillStyle='#cbd5e1';x.beginPath();x.arc(mx2,my,mr,0,7);x.fill();
+x.fillStyle='#94a3b8';[[mx2-8,my-6,6],[mx2+6,my+8,5]].forEach(function(c){
+x.beginPath();x.arc(c[0],c[1],c[2],0,7);x.fill();});
+btxt(x,L(['🌙 চাঁদ','🌙 Moon']),mx2,my+mr+30,25,'#e2e8f0','center');
+var vx=mx2+70,vy=my-85+Math.sin(t*1.5)*7;
+var vg=x.createRadialGradient(vx,vy,2,vx,vy,20);
+vg.addColorStop(0,'#fef9c3');vg.addColorStop(1,'rgba(253,224,71,0)');
+x.fillStyle=vg;x.beginPath();x.arc(vx,vy,20,0,7);x.fill();
+x.fillStyle='#fcd34d';x.beginPath();x.arc(vx,vy,8,0,7);x.fill();
+btxt(x,L(['শুক্র ✨','Venus ✨']),vx,vy-22,21,'#fde047','center');
+x.strokeStyle='rgba(226,232,240,.6)';x.lineWidth=2;x.setLineDash([10,8]);
+x.beginPath();x.moveTo(ex+er+10,ey);x.lineTo(mx2-mr-10,my);x.stroke();x.setLineDash([]);
+var lp=((t*.22)%1),lx=ex+er+10+(mx2-mr-20-(ex+er+10))*lp;
+x.fillStyle='#fde047';x.beginPath();x.arc(lx,my,7,0,7);x.fill();
+x.fillStyle='rgba(253,224,71,.35)';x.beginPath();x.arc(lx,my,13,0,7);x.fill();
+btxt(x,'⚡ '+L(['আলো: ১.৩ সেকেন্ড','Light: 1.3 sec']),512,my-80,25,'#fde047','center');
+btxt(x,L(['দূরত্ব: ৩,৮৪,৪০০ কিমি','Distance: 384,400 km']),512,my+95,27,'#ffffff','center','700');
+x.fillStyle='#fde68a';rrect(x,40,470,944,115,20);x.fill();
+x.fillStyle='#1d4ed8';x.beginPath();x.arc(130,528,24,0,7);x.fill();
+x.fillStyle='#fde047';x.beginPath();x.arc(880,528,42,0,7);x.fill();
+x.strokeStyle='#f59e0b';x.lineWidth=4;
+for(var i2=0;i2<10;i2++){var ra=i2*Math.PI/5;
+x.beginPath();x.moveTo(880+Math.cos(ra)*48,528+Math.sin(ra)*48);
+x.lineTo(880+Math.cos(ra)*(56+Math.sin(t*3+i2)*4),528+Math.sin(ra)*(56+Math.sin(t*3+i2)*4));x.stroke();}
+x.setLineDash([12,9]);x.lineDashOffset=-t*40;
+x.strokeStyle='#0284c7';x.lineWidth=5;
+x.beginPath();x.moveTo(160,528);x.lineTo(830,528);x.stroke();x.setLineDash([]);
+btxt(x,'🌞 '+L(['১৪৯.৬ মিলিয়ন কিমি — আলো: ৮ মি ২০ সে!','149.6 million km — light: 8m 20s!']),512,495,25,'#b45309','center');
+btxt(x,L(['🌍 পৃথিবী','🌍 Earth']),130,585,20,'#1d4ed8','center');
+btxt(x,L(['সূর্য = ১ AU','Sun = 1 AU']),880,590,20,'#b45309','center');
+},
+atom:function(x,t){
+x.fillStyle='#0f172a';rrect(x,40,160,944,290,22);x.fill();
+var nx=330,ny=305;
+[[140,52,0],[140,52,1.05],[140,52,2.09]].forEach(function(o,oi){
+x.save();x.translate(nx,ny);x.rotate(o[2]);
+x.strokeStyle='rgba(148,163,184,.5)';x.lineWidth=2;
+x.beginPath();x.ellipse(0,0,o[0],o[1],0,0,7);x.stroke();
+var ea=t*3+oi*2.1;
+var eX=Math.cos(ea)*o[0],eY=Math.sin(ea)*o[1];
+x.fillStyle='#38bdf8';x.beginPath();x.arc(eX,eY,8,0,7);x.fill();
+x.fillStyle='rgba(56,189,248,.3)';x.beginPath();x.arc(eX,eY,14,0,7);x.fill();
+x.restore();});
+for(var i=0;i<7;i++){var na=i/7*Math.PI*2,nr=13+(i%2)*8;
+var px2=nx+Math.cos(na)*nr,py2=ny+Math.sin(na)*nr+Math.sin(t*6+i)*2;
+x.fillStyle=i%2?'#cbd5e1':'#ef4444';
+x.beginPath();x.arc(px2,py2,10,0,7);x.fill();}
+btxt(x,'⚛️',nx,ny+95,34,'#e2e8f0','center');
+x.fillStyle='#ef4444';x.beginPath();x.arc(600,215,11,0,7);x.fill();
+btxt(x,L(['প্রোটন (+)','Proton (+)']),622,221,23,'#fca5a5');
+x.fillStyle='#cbd5e1';x.beginPath();x.arc(600,260,11,0,7);x.fill();
+btxt(x,L(['নিউট্রন','Neutron']),622,266,23,'#e2e8f0');
+x.fillStyle='#38bdf8';x.beginPath();x.arc(600,305,9,0,7);x.fill();
+btxt(x,L(['ইলেকট্রন (−) — ঘোরে ⚡','Electron (−) — orbits ⚡']),622,311,23,'#7dd3fc');
+btxt(x,L(['পরমাণু = সবকিছুর সবচেয়ে ছোট ব্লক!','Atom = smallest block of everything!']),600,370,24,'#fbbf24','center');
+btxt(x,L(['১১৮টা মৌল ⚗️ • বন্ধন ভাঙলে-জুড়লে = বিক্রিয়া!','118 elements ⚗️ • bonds break/form = reactions!']),600,410,21,'#a5b4fc','center');
+},
+h2oJourney:function(x,t){
+x.fillStyle='#f0f9ff';rrect(x,40,160,944,452,22);x.fill();
+var ox=190,oy=300;
+var half=(104.5/2)*(Math.PI/180),d=95;
+var h1=[ox+Math.sin(half)*d,oy-Math.cos(half)*d];
+var h2=[ox-Math.sin(half)*d,oy-Math.cos(half)*d];
+x.strokeStyle='#334155';x.lineWidth=11;
+[h1,h2].forEach(function(h){x.beginPath();x.moveTo(ox,oy);x.lineTo(h[0],h[1]);x.stroke();});
+x.fillStyle='#ef4444';x.beginPath();x.arc(ox,oy,52,0,7);x.fill();
+btxt(x,'O',ox,oy+13,40,'#ffffff','center','700');
+x.fillStyle='#3b82f6';
+[h1,h2].forEach(function(h){x.beginPath();x.arc(h[0],h[1],30,0,7);x.fill();
+btxt(x,'H',h[0],h[1]+11,30,'#ffffff','center','700');});
+btxt(x,L(['H₂O — পানির অণু ⚛️','H₂O — water molecule ⚛️']),ox,oy+145,27,'#0c4a6e','center');
+btxt(x,L(['২টা হাইড্রোজেন + ১টা অক্সিজেন','2 Hydrogen + 1 Oxygen']),ox,oy+185,21,'#475569','center');
+btxt(x,L(['তোমার পানির যাত্রা 🚰','Journey of your water 🚰']),660,205,28,'#0c4a6e','center');
+var labels=(state.lang==='bn'
+?['☁️ মেঘ','🌧️ বৃষ্টি','🌊 নদী','🏭 শোধনাগার','🚰 তোমার কল']
+:['☁️ Cloud','🌧️ Rain','🌊 River','🏭 Treatment','🚰 Your tap']);
+var xs=[520,610,700,790,890],yy2=300;
+labels.forEach(function(lb,i){btxt(x,lb,xs[i],yy2,23,'#0c4a6e','center');
+if(i<4)arrow(x,xs[i]+28,yy2-9,xs[i+1]-30,yy2-9,'#0284c7',4);});
+var dp=((t*.3)%1)*(890-520)+520;
+x.fillStyle='#38bdf8';x.beginPath();x.arc(dp,yy2-38,9,0,7);x.fill();
+x.fillStyle='rgba(56,189,248,.3)';x.beginPath();x.arc(dp,yy2-38,15,0,7);x.fill();
+btxt(x,L(['বালি-কয়লা ফিল্টারে ময়লা ছেঁকে যায় 🏖️','Sand-coal filters remove dirt 🏖️']),660,360,22,'#334155','center');
+btxt(x,L(['ক্লোরিন বা ফুটালে জীবাণু মারা যায় 🔥','Chlorine/boiling kills germs 🔥']),660,395,22,'#334155','center');
+btxt(x,L(['তারপর পাইপে করে বাড়িতে পৌঁছায়! 🏠','Then pipes carry it home! 🏠']),660,430,22,'#334155','center');
+x.fillStyle='#dbeafe';rrect(x,80,480,864,95,18);x.fill();
+btxt(x,L(['❄️ বরফ • 💧 পানি • ♨️ বাষ্প — পানিই একমাত্র ৩ রূপে থাকা পদার্থ!',
+'❄️ Ice • 💧 Water • ♨️ Vapor — water exists in all 3 states!']),512,535,26,'#1e40af','center');
+},
+photosynthesis:function(x,t){
+var sx=130,sy=280;
+x.save();x.translate(sx,sy);x.rotate(t*.4);x.fillStyle='#fbbf24';
+for(var i=0;i<12;i++){x.rotate(Math.PI/6);x.fillRect(56,-5,26,10)}x.restore();
+var gr=x.createRadialGradient(sx,sy,10,sx,sy,52);
+gr.addColorStop(0,'#fde047');gr.addColorStop(1,'#f59e0b');
+x.fillStyle=gr;x.beginPath();x.arc(sx,sy,48,0,7);x.fill();
+btxt(x,L(['সূর্য','Sun']),sx,sy+78,24,'#b45309','center');
+x.strokeStyle='#f59e0b';x.lineWidth=5;x.setLineDash([14,10]);x.lineDashOffset=-t*60;
+for(var i2=0;i2<3;i2++){x.beginPath();x.moveTo(sx+55,190+i2*45);x.lineTo(400,230+i2*40);x.stroke();}
+x.setLineDash([]);
+btxt(x,L(['আলোক শক্তি','Light energy']),250,175,22,'#b45309');
+x.fillStyle='#a16207';x.fillRect(340,520,620,26);
+x.fillStyle='#7c4a12';for(var i3=0;i3<12;i3++)x.fillRect(360+i3*50,548,26,6);
+x.strokeStyle='#15803d';x.lineWidth=10;x.lineCap='round';
+x.beginPath();x.moveTo(480,520);x.quadraticCurveTo(470,430,480,340);x.stroke();
+var leaf=function(lx,ly,rx,ry,rot){x.save();x.translate(lx,ly);x.rotate(rot);
+x.fillStyle='#22c55e';x.beginPath();x.ellipse(rx/2,0,rx/2,ry/2,0,0,7);x.fill();
+x.strokeStyle='#15803d';x.lineWidth=3;x.beginPath();x.moveTo(0,0);x.lineTo(rx,0);x.stroke();x.restore();};
+leaf(480,460,110,52,-.7);leaf(478,410,110,52,-2.4);leaf(484,370,95,46,-.6);leaf(482,350,90,44,-2.5);
+x.strokeStyle='#92400e';x.lineWidth=6;
+[[-.5,-.15],[-.2,.3],[.3,-.2],[.55,.1]].forEach(function(o){x.beginPath();x.moveTo(480,522);
+x.quadraticCurveTo(480+o[0]*60,560,480+o[0]*100,600);x.stroke();});
+for(var i4=0;i4<5;i4++){var p=((t*.5+i4*.2)%1);var wy=520-p*180;
+x.fillStyle='#38bdf8';x.beginPath();x.arc(480-p*6*Math.sin(p*9),wy,6,0,7);x.fill();}
+btxt(x,L(['পানি ↑','Water ↑']),420,505,22,'#0369a1');
+btxt(x,L(['শিকড় → পানি শোষণ','Roots → absorb water']),640,610,22,'#92400e');
+for(var i5=0;i5<3;i5++){var p2=((t*.45+i5*.33)%1);
+x.fillStyle='rgba(120,120,130,'+(0.9-p2*.5)+')';x.beginPath();
+x.arc(300-p2*140,300-p2*40+p2*30,8,0,7);x.fill();}
+arrow(x,310,330,425,330,'#6b7280',5);
+btxt(x,L(['CO₂ (বাতাস থেকে)','CO₂ (from air)']),250,305,24,'#4b5563');
+for(var i6=0;i6<4;i6++){var p3=((t*.4+i6*.25)%1);
+x.fillStyle='rgba(56,189,248,'+(0.9-p3*.6)+')';x.beginPath();
+x.arc(560+p3*120,320-p3*130,7+p3*3,0,7);x.fill();}
+arrow(x,545,290,665,225,'#0ea5e9',5);
+btxt(x,L(['O₂ (আমরা শ্বাস নিই!)','O₂ (we breathe it!)']),590,205,24,'#0369a1');
+x.strokeStyle='#16a34a';x.lineWidth=5;x.beginPath();x.arc(700,420,58,0,7);x.stroke();
+x.fillStyle='#4ade80';x.beginPath();x.ellipse(700,420,50,34,0,0,7);x.fill();
+x.fillStyle='#166534';for(var i7=0;i7<6;i7++){x.save();x.translate(700,420);
+x.rotate(i7*1.05+.3);x.beginPath();x.ellipse(0,0,26,9,0,0,7);x.fill();x.restore();}
+btxt(x,L(['ক্লোরোফিল (সবুজ রঙ্গক)','Chlorophyll']),700,510,22,'#166534','center');
+arrow(x,500,430,500,500,'#d97706',5);
+btxt(x,L(['গ্লুকোজ = গাছের খাবার 🍯','Glucose = plant food 🍯']),520,470,24,'#b45309');
+},
+waterCycle:function(x,t){
+var sky=x.createLinearGradient(0,150,0,540);sky.addColorStop(0,'#bae6fd');sky.addColorStop(1,'#e0f2fe');
+x.fillStyle=sky;x.fillRect(30,150,964,390);
+var sx=140,sy=230;x.save();x.translate(sx,sy);x.rotate(t*.4);x.fillStyle='#fbbf24';
+for(var i=0;i<10;i++){x.rotate(Math.PI/5);x.fillRect(42,-4,20,8)}x.restore();
+x.fillStyle='#f59e0b';x.beginPath();x.arc(sx,sy,36,0,7);x.fill();
+btxt(x,L(['সূর্য','Sun']),sx,sy+62,22,'#b45309','center');
+x.fillStyle='#38bdf8';x.beginPath();x.moveTo(30,480);
+for(var i2=0;i2<=40;i2++){var wx=30+i2*24.1;
+x.lineTo(wx,470+Math.sin(i2*.7+t*2)*8);}
+x.lineTo(994,540);x.lineTo(30,540);x.fill();
+btxt(x,L(['সমুদ্র / নদী','Sea / River']),180,530,24,'#0369a1');
+x.strokeStyle='#0ea5e9';x.lineWidth=5;x.setLineDash([12,9]);x.lineDashOffset=-t*50;
+for(var i3=0;i3<3;i3++){x.beginPath();x.moveTo(230+i3*70,460);x.lineTo(230+i3*70,330);x.stroke();}
+x.setLineDash([]);
+btxt(x,L(['বাষ্পীভবন 💨','Evaporation 💨']),330,395,26,'#0369a1');
+x.fillStyle='#78716c';x.beginPath();x.moveTo(700,540);x.lineTo(830,330);x.lineTo(960,540);x.fill();
+x.fillStyle='#fff';x.beginPath();x.moveTo(805,360);x.lineTo(830,330);x.lineTo(855,360);
+x.lineTo(840,375);x.lineTo(820,362);x.fill();
+var cx=((t*28)%1300)-260;
+function cloud(px,py,s){x.fillStyle='#fff';
+[[0,0,34],[30,-8,26],[-28,-6,24],[52,4,20],[-50,4,18]].forEach(function(c){
+x.beginPath();x.arc(px+c[0]*s,py+c[1]*s,c[2]*s,0,7);x.fill();});}
+cloud(cx,230,1);cloud(cx+180,255,.7);
+btxt(x,L(['মেঘ ☁️ (ঘনীভবন)','Cloud ☁️ (condensation)']),cx-90,180,24,'#475569');
+x.strokeStyle='#0284c7';x.lineWidth=3;
+for(var i4=0;i4<9;i4++){var ry=270+((t*170+i4*37)%150);
+var rxx=cx-55+i4*15;x.beginPath();x.moveTo(rxx,ry);x.lineTo(rxx-4,ry+14);x.stroke();}
+x.strokeStyle='#0ea5e9';x.lineWidth=8;x.setLineDash([16,12]);x.lineDashOffset=t*70;
+x.beginPath();x.moveTo(860,520);x.quadraticCurveTo(640,580,420,510);x.stroke();x.setLineDash([]);
+btxt(x,L(['বৃষ্টি 🌧️ → নদীতে ফেরা','Rain 🌧️ → back to rivers']),640,600,24,'#075985');
+},
+solar:function(x,t){
+var cx=512,cy=390;
+x.fillStyle='#0f172a';rrect(x,30,150,964,450,24);x.fill();
+x.strokeStyle='rgba(148,163,184,.35)';x.lineWidth=2;
+[95,140,190,245,305].forEach(function(r){x.beginPath();x.ellipse(cx,cy,r,r*.62,0,0,7);x.stroke();});
+var sr=46+Math.sin(t*2)*3;
+var sg=x.createRadialGradient(cx,cy,8,cx,cy,sr+22);
+sg.addColorStop(0,'#fef08a');sg.addColorStop(.6,'#f59e0b');sg.addColorStop(1,'rgba(245,158,11,0)');
+x.fillStyle=sg;x.beginPath();x.arc(cx,cy,sr+22,0,7);x.fill();
+x.fillStyle='#fde047';x.beginPath();x.arc(cx,cy,sr,0,7);x.fill();
+var names=state.lang==='bn'
+?['বুধ','শুক্র','পৃথিবী','মঙ্গল','বৃহস্পতি','শনি']
+:['Mercury','Venus','Earth','Mars','Jupiter','Saturn'];
+var planets=[
+{r:95,sz:6,c:'#b8b0a6',sp:1.9},{r:140,sz:9,c:'#e8b84a',sp:1.35},
+{r:190,sz:10,c:'#3b82f6',sp:1,earth:true},{r:245,sz:8,c:'#ef6b4a',sp:.75},
+{r:305,sz:18,c:'#d9a066',sp:.5},{r:305,sz:14,c:'#d9c48a',sp:.42,offset:2.4,ring:true}];
+planets.forEach(function(p,i){var a=t*p.sp+(p.offset||i*1.7);
+var px=cx+Math.cos(a)*p.r,py=cy+Math.sin(a)*p.r*.62;
+if(p.ring){x.strokeStyle=p.c;x.lineWidth=3;x.beginPath();
+x.ellipse(px,py,p.sz+9,(p.sz+9)*.35,-.4,0,7);x.stroke();}
+x.fillStyle=p.c;x.beginPath();x.arc(px,py,p.sz,0,7);x.fill();
+if(p.earth){x.fillStyle='#22c55e';x.beginPath();x.arc(px-2,py-2,3.5,0,7);x.fill();}
+btxt(x,names[i],px,py-p.sz-8,15,'#e2e8f0','center','500');});
+btxt(x,L(['🌞 সবাই সূর্যের টানে (মাধ্যাকর্ষণ) ঘুরছে!',"🌞 All orbit by the Sun's gravity!"]),512,165,24,'#fbbf24','center');
+},
+newton:function(x,t){
+x.fillStyle='#57534e';x.fillRect(70,300,16,180);
+x.fillStyle='#22c55e';[[78,270,60],[40,300,44],[120,296,46]].forEach(function(c){
+x.beginPath();x.arc(c[0],c[1],c[2],0,7);x.fill();});
+btxt(x,L(['আপেল গাছ 🌳','Apple tree 🌳']),78,220,22,'#166534','center');
+var drop=((t*.55)%1),ay=300+drop*210;
+x.fillStyle='#dc2626';x.beginPath();x.arc(78,ay,13,0,7);x.fill();
+x.strokeStyle='#166534';x.lineWidth=3;x.beginPath();x.moveTo(78,ay-12);x.lineTo(82,ay-20);x.stroke();
+arrow(x,120,ay-10,120,ay+34,'#0ea5e9',4);
+x.fillStyle='#0f172a';x.fillRect(30,518,300,14);
+btxt(x,L(['মাধ্যাকর্ষণ g ⬇️','Gravity g ⬇️']),150,585,24,'#0369a1','center');
+x.fillStyle='#0f172a';x.fillRect(420,518,540,14);
+var cxr=470+((t*70)%330);
+x.strokeStyle='rgba(0,0,0,.15)';x.lineWidth=5;
+for(var i=0;i<3;i++){x.beginPath();x.moveTo(cxr-40-i*28,430);x.lineTo(cxr-75-i*28,430);x.stroke();}
+x.fillStyle='#8b5cf6';rrect(x,cxr,420,110,70,12);x.fill();
+x.fillStyle='#1e1b4b';[cxr+22,cxr+88].forEach(function(w){x.beginPath();x.arc(w,498,16,0,7);x.fill();
+x.strokeStyle='#fff';x.lineWidth=3;x.beginPath();x.moveTo(w,498);
+x.lineTo(w+12*Math.cos(t*8),498+12*Math.sin(t*8));x.stroke();});
+arrow(x,cxr+120,455,cxr+185,455,'#dc2626',7);
+btxt(x,'F',cxr+150,440,30,'#dc2626','center','700');
+arrow(x,cxr+10,510,cxr-45,510,'#94a3b8',4);
+btxt(x,L(['ঘর্ষণ','friction']),cxr-30,536,18,'#64748b','center');
+btxt(x,L(['বস্তু (ভর m)','Object (mass m)']),cxr+55,465,17,'#ffffff','center');
+var fs=1+Math.sin(t*3)*.05;
+x.save();x.translate(690,270);x.scale(fs,fs);
+btxt(x,'F = m × a',0,0,52,'#0f172a','center','700');x.restore();
+btxt(x,L(['বল = ভর × ত্বরণ','Force = mass × acceleration']),690,310,23,'#6d28d9','center');
+btxt(x,L(['১ম সূত্র: জড়তা — বস্তু নিজে থেকে গতি বদলাতে চায় না','1st law: inertia — objects resist change']),690,355,20,'#475569','center');
+},
+fraction:function(x,t){
+function pie(cx,cy,r,frac,label,anim){
+x.fillStyle='#fde68a';x.beginPath();x.arc(cx,cy,r,0,7);x.fill();
+x.strokeStyle='#b45309';x.lineWidth=3;
+var n=8,shown=anim?Math.min(frac,Math.max(0,(t-1)*.35)):frac;
+x.fillStyle='#f97316';
+for(var i=0;i<n;i++){var a0=-Math.PI/2+i*Math.PI*2/n,a1=-Math.PI/2+(i+1)*Math.PI*2/n;
+if(i/n>=shown-.001)break;
+var am=Math.min(a1,-Math.PI/2+shown*Math.PI*2);
+x.beginPath();x.moveTo(cx,cy);x.arc(cx,cy,r,a0,am);x.closePath();x.fill();}
+for(var i2=0;i2<n;i2++){var a=-Math.PI/2+i2*Math.PI*2/n;
+x.beginPath();x.moveTo(cx,cy);x.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);x.stroke();}
+x.beginPath();x.arc(cx,cy,r,0,7);x.stroke();
+btxt(x,label,cx,cy+r+40,34,'#0f172a','center','700');}
+x.fillStyle='#fff7ed';rrect(x,40,170,944,430,26);x.fill();
+pie(210,375,115,.5,L(['১/২','1/2']));
+btxt(x,'+',415,395,54,'#6d28d9','center','700');
+pie(520,375,115,.25,L(['১/৪','1/4']));
+btxt(x,'=',725,395,54,'#6d28d9','center','700');
+pie(850,375,128,.75,L(['৩/৪','3/4']),true);
+btxt(x,L(['৮ ভাগ পিৎজা 🍕 — কতটুকু খেলে?','8-slice pizza 🍕 — how much eaten?']),512,190,26,'#9a3412','center');
+btxt(x,L(['হর (নিচে) = মোট ভাগ • লব (উপরে) = নেওয়া ভাগ','Denominator = total • Numerator = taken']),512,625,22,'#57534e','center');
+},
+graph:function(x,t){
+x.fillStyle='#f8fafc';rrect(x,40,170,944,430,26);x.fill();
+var ox=180,oy=385;
+x.strokeStyle='#cbd5e1';x.lineWidth=2;
+x.beginPath();x.moveTo(60,oy);x.lineTo(960,oy);x.stroke();
+x.beginPath();x.moveTo(ox,190);x.lineTo(ox,570);x.stroke();
+btxt(x,'x',945,oy+26,22,'#64748b','center');
+btxt(x,'y',ox-22,205,22,'#64748b','center');
+var prog=Math.min(1,(t*.28)%1.35);
+x.strokeStyle='#7c3aed';x.lineWidth=5;x.lineCap='round';x.beginPath();
+for(var i=0;i<=760*prog;i+=4){var gx=ox+i;
+var gy=oy-Math.sin(i*.016)*95;i===0?x.moveTo(gx,gy):x.lineTo(gx,gy);}
+x.stroke();
+x.strokeStyle='#0ea5e9';x.lineWidth=4;x.setLineDash([10,8]);x.beginPath();
+for(var i2=0;i2<=760*prog;i2+=4){var gx2=ox+i2;
+var gy2=oy-Math.cos(i2*.016)*95;i2===0?x.moveTo(gx2,gy2):x.lineTo(gx2,gy2);}
+x.stroke();x.setLineDash([]);
+var bx=ox+760*Math.min(1,prog),by=oy-Math.sin(760*Math.min(1,prog)*.016)*95;
+x.fillStyle='#7c3aed';x.beginPath();x.arc(bx,by,9,0,7);x.fill();
+btxt(x,'x = '+(760*Math.min(1,prog)*.016).toFixed(1),clamp(bx,220,900),by-24,22,'#7c3aed','center','700');
+x.fillStyle='#7c3aed';x.fillRect(600,190,16,16);btxt(x,'y = sin(x)',626,204,24,'#7c3aed');
+x.fillStyle='#0ea5e9';x.fillRect(600,222,16,16);btxt(x,'y = cos(x)',626,236,24,'#0284c7');
+btxt(x,L(['তরঙ্গ, আলো, শব্দ — সব জায়গায় sin-cos! 🎢','Waves, light, sound — sin & cos everywhere! 🎢']),512,600,24,'#475569','center');
+},
+generic:function(x,t){
+x.fillStyle='#faf5ff';rrect(x,40,170,944,430,26);x.fill();
+var pts=state.boardPoints||[];
+pts.forEach(function(p,i){var a=clamp(t*.5-i*.45,0,1);if(a<=0)return;
+var oy=250+i*95,xp=90+(1-a)*40;
+x.globalAlpha=a;
+var cols=['#7c3aed','#0ea5e9','#f59e0b','#10b981','#ec4899'];
+var pr=13+Math.sin(t*3+i)*2.5;
+x.fillStyle=cols[i%5];x.beginPath();x.arc(xp+13,oy-11,pr,0,7);x.fill();
+x.fillStyle='#fff';x.font="700 15px 'Hind Siliguri'";x.textAlign='center';
+x.fillText(String(i+1),xp+13,oy-6);
+x.fillStyle='#3f3a4a';x.textAlign='left';x.font="500 27px 'Hind Siliguri',sans-serif";
+var words=p.split(' ');var line='',yy=oy;
+for(var wi=0;wi<words.length;wi++){var tt=line+words[wi]+' ';
+if(x.measureText(tt).width>800&&line){x.fillText(line,xp+45,yy);line=words[wi]+' ';yy+=36}else line=tt;}
+x.fillText(line.trim(),xp+45,yy);x.globalAlpha=1;});
+}};
+function wrapText(x,text,px,py,maxW,lh){var words=text.split(' ');var line='',yy=py;
+for(var i=0;i<words.length;i++){var t2=line+words[i]+' ';
+if(x.measureText(t2).width>maxW&&line){x.fillText(line,px,yy);line=words[i]+' ';yy+=lh}else line=t2}
+x.fillText(line.trim(),px,yy);return yy}
+function drawBoard(t){
+var x=bX,W=1024,H=640;x.clearRect(0,0,W,H);
+var grd=x.createLinearGradient(0,0,W,0);grd.addColorStop(0,'#7c3aed');grd.addColorStop(1,'#c026d3');
+rrect(x,8,8,W-16,H-16,42);x.fillStyle='#ffffff';x.fill();x.lineWidth=10;x.strokeStyle=grd;x.stroke();
+x.fillStyle='#3b2a6b';x.textAlign='left';x.font="700 46px 'Hind Siliguri',sans-serif";
+var endY=wrapText(x,'📖 '+(state.boardTitle||L(['আজকের পাঠ',"Today's lesson"])),60,95,W-140,58);
+x.fillStyle=grd;x.fillRect(60,endY+18,W-120,6);
+var fn=TPL[state.boardTemplate]||TPL.generic;
+x.save();x.beginPath();rrect(x,26,150,W-52,462,20);x.clip();
+fn(x,t);x.restore();
+x.fillStyle='#a78bfa';x.font="600 22px 'Hind Siliguri',sans-serif";x.textAlign='right';
+x.fillText('✨ EduMind',W-55,H-30);
+boardTex.needsUpdate=true;}
+function showBoard(tpl,title,points){
+state.boardTemplate=tpl;state.boardTitle=title;state.boardPoints=points;
+vBoard.visible=true;boardAnim=0;$('boardBtn').classList.add('show');
+drawBoard(0);}
+function hideBoard(){vBoard.visible=false;$('boardBtn').classList.remove('show')}
+var TOPIC_MAP=[
+{tpl:'h2oJourney',k:['পানি খাই','খাবার পানি','পানি খায়','drinking water','h₂o','h2o','বিশুদ্ধ পানি','ফিল্টার','filter','পানি আসে','পানির উপাদান','কলের পানি','শোধন','water we drink']},
+{tpl:'spaceDist',k:['দূরত্ব','distance','সূর্যের দূরত্ব','চাঁদের দূরত্ব','সূর্য কত','চাঁদ কত','কত দূরে','কত দূর','আলোকবর্ষ','light year','অকাল্টেশন','occultation','শুক্র গ্রহ','শুক্র দেখা','শুক্র উঠে','conjunction','মিলন']},
+{tpl:'atom',k:['রসায়ন','chemistry','পরমাণু','atom','অণু','molecule','ইলেকট্রন','electron','প্রোটন','proton','নিউট্রন','neutron','মৌল','element','বিক্রিয়া','reaction','অ্যাসিড','acid','ক্ষার','base','পর্যায় সারণি','periodic','লবণ তৈরি']},
+{tpl:'photosynthesis',k:['সালোক','photosyn','ক্লোরোফিল','সবুজ গাছ','green plant','পাতা']},
+{tpl:'waterCycle',k:['পানির চক্র','বৃষ্টি','water cycle','বাষ্প','মেঘ','cloud','rain','evaporat']},
+{tpl:'solar',k:['সৌরজগৎ','গ্রহ','solar','planet','মহাকাশ','space','নক্ষত্র','star','মঙ্গল','মার্স','বৃহস্পতি','jupiter','শনি','saturn','চাঁদ','moon','শুক্র','venus']},
+{tpl:'newton',k:['নিউটন','newton','বল','force','গতি','motion','gravity','মাধ্যাকর্ষণ','জড়তা','inertia','ত্বরণ','acceleration','friction','ঘর্ষণ']},
+{tpl:'fraction',k:['ভগ্নাংশ','fraction','হর','লব']},
+{tpl:'graph',k:['গ্রাফ','graph','sin','cos','সমীকরণ','equation','জ্যামিতি','geometry','ত্রিকোণমিতি','trigonometry','অঙ্ক','math']}];
+function detectTpl(q,ans){var s=(q+' '+ans).toLowerCase();
+for(var i=0;i<TOPIC_MAP.length;i++){var m=TOPIC_MAP[i];
+for(var j=0;j<m.k.length;j++){if(s.indexOf(m.k[j].toLowerCase())>=0)return m.tpl}}
+return 'generic'}
+var chat=$('chat'),input=$('msgInput');
+function scrollChat(){chat.scrollTop=chat.scrollHeight}
+function addMsg(text,who){var d=document.createElement('div');d.className='msg '+who;
+d.textContent=text;chat.appendChild(d);scrollChat()}
+function showPill(text,ttl,warn){var d=document.createElement('div');d.className='pill'+(warn?' warn':'');
+d.textContent=text;chat.appendChild(d);scrollChat();
+setTimeout(function(){d.style.transition='opacity .5s';d.style.opacity='0';
+setTimeout(function(){d.remove()},500)},ttl||3200)}
+function typingOn(){var d=document.createElement('div');d.className='typing';d.id='typing';
+d.innerHTML='<span></span><span></span><span></span>';chat.appendChild(d);scrollChat()}
+function typingOff(){var t2=$('typing');if(t2)t2.remove()}
+function setStatus(txt,mode){$('statusText').textContent=txt;
+ $('statusDot').className='dot'+(mode==='busy'?' busy':mode==='err'?' err':'')}
+function updHUD(){$('gems').textContent=state.lang==='bn'?bnNum(gems):gems;
+ $('topicsCount').textContent=state.lang==='bn'?bnNum(topics):topics;
+ $('streak').textContent=state.lang==='bn'?bnNum(streak):streak}
+function addGems(n){gems+=n;DB.set('gems',gems);updHUD();sndPop()}
+var SUGG={
+bn:['🌱 সালোকসংশ্লেষণ ব্যাখ্যা করো','🍎 নিউটনের গতির সূত্র','💧 পানির চক্র','🪐 সৌরজগৎ','🍰 ভগ্নাংশ কী?','🎯 কুইজ নাও'],
+en:['🌱 Explain photosynthesis','🍎 Newton\u2019s laws','💧 Water cycle','🪐 Solar system','🍰 What is a fraction?','🎯 Take a quiz']};
+function renderSugg(){var row=$('suggRow');row.innerHTML='';
+SUGG[state.lang].forEach(function(s){var b=document.createElement('button');b.className='sugg';
+b.textContent=s;b.onclick=function(){var txt=s.replace(/^\S+\s/,'');sendMessage(txt)};row.appendChild(b);})}
+var history=[];
+var GEMINI_MODELS=[
+{n:'gemini-2.5-flash',think:0},
+{n:'gemini-2.0-flash',think:null},
+{n:'gemini-2.0-flash-001',think:null},
+{n:'gemini-2.5-flash-lite',think:0},
+{n:'gemini-flash-latest',think:null}];
+var LAST_GEMINI_ERROR='';
+function geminiGenerate(body,key,maxTok,useSys){
+var i=0,lastErr=null;
+function attempt(){
+if(i>=GEMINI_MODELS.length){
+LAST_GEMINI_ERROR=lastErr?(lastErr.message||'error'):'unknown';
+return Promise.reject(lastErr||new Error('all models failed'));}
+var m=GEMINI_MODELS[i++];
+var gc={temperature:.85,maxOutputTokens:maxTok||900};
+if(m.think!=null)gc.thinkingConfig={thinkingBudget:m.think};
+var full={contents:body.contents||body,generationConfig:gc};
+if(useSys)full.systemInstruction={parts:[{text:sysPrompt()}]};
+return fetch('https://generativelanguage.googleapis.com/v1beta/models/'+m.n+':generateContent',{
+method:'POST',
+headers:{'Content-Type':'application/json','x-goog-api-key':key},
+body:JSON.stringify(full)})
+.then(function(r){
+return r.json().then(function(d){
+if(!r.ok){
+var msg=(d&&d.error&&d.error.message)?d.error.message:('HTTP '+r.status);
+var e=new Error(msg);e.status=r.status;throw e;}
+var cand=d&&d.candidates&&d.candidates[0];
+var parts=cand&&cand.content&&cand.content.parts;
+var txt=parts?parts.map(function(p){return p.text||''}).join(''):'';
+if(!txt){
+var fr=(cand&&cand.finishReason)||((d&&d.promptFeedback&&d.promptFeedback.blockReason)||'blocked');
+var e2=new Error('empty response ('+fr+')');e2.status=0;throw e2;}
+return txt;});})
+.catch(function(e){lastErr=e;return attempt()});}
+return attempt();}
+function geminiHint(e){
+var m=((e&&e.message)||'').toLowerCase();
+if(m.indexOf('location')>=0||m.indexOf('not supported')>=0)
+return '📍 তোমার country/নেটওয়ার্ক থেকে Gemini API ব্লকড — মোবাইল ডাটা দিয়ে ট্রাই করো';
+if(e&&e.status===403)
+return '🚫 এই key-তে permission নেই — aistudio.google.com থেকে নতুন key বানাও';
+if(e&&e.status===429)
+return '⏳ ফ্রি quota শেষ — ১ মিনিট পরে আবার ট্রাই করো';
+if(e&&e.status===404)
+return '❌ Model পাওয়া যায়নি — নতুন key বানিয়ে ট্রাই করো';
+if(e&&e.status===400&&(m.indexOf('api key')>=0||m.indexOf('api_key')>=0))
+return '❌ Key ভুল — পুরো key আবার কপি-পেস্ট করো (স্পেস ছাড়া)';
+if(m.indexOf('failed to fetch')>=0||m.indexOf('network')>=0||m.indexOf('load')>=0)
+return '🌐 ইন্টারনেট কানেকশন সমস্যা — নেটওয়ার্ক চেক করো';
+if(m.indexOf('safety')>=0||m.indexOf('blocked')>=0||m.indexOf('prohibited')>=0)
+return '🛡️ Safety filter আটকে দিয়েছে — প্রশ্নটা অন্যভাবে করো';
+return '⚠️ '+(e&&e.message?e.message:'Unknown error');}
+function sysPrompt(){return state.lang==='bn'
+?'তুমি "EduMind" — ৫ম-১০ম শ্রেণির বন্ধুত্বপূর্ণ, উৎসাহদায়ক AI শিক্ষক (বাংলাদেশ কারিকুলাম)। সব উত্তর বাংলায়। নিয়ম: ১) উত্তর সংক্ষিপ্ত (৩-৫ বাক্য) ২) সহজ ভাষা + মজার উদাহরণ ৩) ১-২টা ইমোজি ৪) শেষে একটা ছোট চিন্তা-উদ্রেককারী প্রশ্ন ৫) শুধু পড়াশোনা-বিষয়ক আলোচনা।'
+:'You are "EduMind", a friendly AI teacher for grades 5-10 (Bangladesh curriculum). Reply in English. Rules: 1) Short (3-5 sentences) 2) Simple language, fun examples 3) 1-2 emojis 4) End with a small thought-provoking question 5) Study topics only.'}
+function geminiAsk(q,key){
+history.push({role:'user',text:q});
+var contents=history.slice(-10).map(function(h){return{role:h.role,parts:[{text:h.text}]}});
+return geminiGenerate({contents:contents},key,900,true)
+.then(function(txt){
+history.push({role:'model',text:txt});
+if(history.length>12)history=history.slice(-12);
+state.keyOk=true;
+return txt;})
+.catch(function(e){history.pop();throw e;});}
+var DEMO=[
+{k:['দূরত্ব','distance','সূর্য কত','চাঁদ কত','কত দূরে','আলোকবর্ষ','light year'],
+bn:'দুটো দূরত্বই জেনে নাও! 🌞 পৃথিবী→সূর্য গড় দূরত্ব প্রায় ১৪৯.৬ মিলিয়ন কিলোমিটার (১ অ্যাস্ট্রোনমিক্যাল ইউনিট) — সূর্যের আলো আমাদের কাছে আসতে সময় নেয় ৮ মিনিট ২০ সেকেন্ড! মানে তুমি সবসময় সূর্যের ৮ মিনিট আগের ছবি দেখছো। 🌙 আর পৃথিবী→চাঁদ দূরত্ব মাত্র ৩,৮৪,৪০০ কিলোমিটার — আলোর জন্য লাগে খালি ১.৩ সেকেন্ড! অ্যাপোলো রকেট চাঁদে পৌঁছাতে ৩ দিন নিয়েছিল। মজার তথ্য: চাঁদ প্রতি বছর ৩.৮ সেন্টিমিটার করে দূরে সরে যাচ্ছে! ভাবো তো — সূর্য এখনই নিভে গেলে আমরা কতক্ষণ পরে বুঝব?',
+en:'Both distances, coming up! 🌞 Earth→Sun average distance is about 149.6 million km (1 AU) — sunlight takes 8 minutes 20 seconds to reach us! So you always see the Sun as it was 8 minutes ago. 🌙 And Earth→Moon is only 384,400 km — light covers it in just 1.3 seconds! Apollo rockets took 3 days. Fun fact: the Moon drifts 3.8 cm farther every year! Think — if the Sun went out now, how long until we would know?'},
+{k:['শুক্র উঠে','শুক্র দেখা','চাঁদের উপর','চাঁদের পাশে','অকাল্টেশন','occultation','মিলন','conjunction','venus'],
+bn:'চাঁদের পাশে/উপরে শুক্র গ্রহ দেখাকে বলে গ্রহ-চন্দ্র মিলন (Conjunction) 🌙✨ — আর চাঁদ শুক্রকে পুরো ঢেকে দিলে তাকে বলে অকাল্টেশন (Occultation)! কেন হয়? চাঁদ প্রতি মাসে পুরো আকাশ ঘুরে আসে; মাঝে মাঝে ঠিক শুক্রের সামনে এসে দাঁড়ায় — শুধু আমাদের চোখের দিক (line of sight) থেকে এক লাইনে আসে! আসলে শুক্র কোটি কোটি কিমি দূরে, চাঁদ মাত্র ৩.৮ লাখ কিমি। অকাল্টেশন স্থায়ী হয় ৩০ মিনিট থেকে ১ ঘণ্টার মতো, আর পাশাপাশি জোড়া দেখা যায় ২-৩ ঘণ্টা। বছরে ১-২ বার এমন হয়। ভাবো তো — দূরের পাহাড় ছোট দেখায়, এটার সাথে কি একই ব্যাপার?',
+en:'When Venus appears beside/above the Moon, it\u2019s called a Conjunction 🌙✨ — and when the Moon completely covers Venus, it\u2019s an Occultation! Why? The Moon travels across the whole sky every month; sometimes it passes exactly in front of Venus — they only align from our line of sight! Actually Venus is millions of km away, the Moon just 384,400 km. Occultation lasts about 30 min–1 hour; the close pair stays visible 2–3 hours. It happens 1–2 times a year. Think — distant mountains look small; is that the same idea?'},
+{k:['রসায়ন','chemistry','পরমাণু','atom','অণু','molecule','ইলেকট্রন','electron','প্রোটন','নিউট্রন','মৌল','element','অ্যাসিড','acid','ক্ষার','পর্যায় সারণি','বিক্রিয়া'],
+bn:'রসায়ন মানে পদার্থের গল্প! ⚛️ সবকিছু তৈরি হয় পরমাণু দিয়ে — মাঝখানে নিউক্লিয়াস (প্রোটন + নিউট্রন), চারপাশে ইলেকট্রন ঝড়ের বেগে ঘোরে। একই পরমাণুর দল = মৌল (যেমন সোনা, অক্সিজেন), ভিন্ন পরমাণু জোড়া দিলে = যৌগ (যেমন পানি H₂O, লবণ NaCl)। বিক্রিয়ায় পরমাণুরা বন্ধন ভেঙে-জুড়ে নতুন জিনিস বানায়! লেবুতে থাকে অ্যাসিড 🍋, সাবানে ক্ষার — আর পর্যায় সারণিতে ১১৮টা মৌল আছে। ভাবো তো — পানি আর লবণ, দুটোই কি হুবহু একই পরমাণু দিয়ে তৈরি?',
+en:'Chemistry is the story of matter! ⚛️ Everything is made of atoms — a nucleus (protons + neutrons) in the middle, electrons whizzing around. Same atoms together = element (like gold, oxygen); different atoms joined = compound (like water H₂O, salt NaCl). In reactions, atoms break and form bonds to make new things! Lemon has acid 🍋, soap has base — and the periodic table lists 118 elements. Think — are water and salt made of exactly the same atoms?'},
+{k:['পানি খাই','খাবার পানি','h₂o','h2o','বিশুদ্ধ পানি','ফিল্টার','পানি আসে','পানির উপাদান','কলের পানি','শোধনাগার','drinking water'],
+bn:'তোমার গ্লাসের প্রতিটা পানির অণু হলো H₂O — ২টা হাইড্রোজেন + ১টা অক্সিজেন পরমাণু ⚛️💧! এই পানির যাত্রা দেখো: সমুদ্র-নদীর পানি সূর্যের তাপে বাষ্প হয় → মেঘ → বৃষ্টি → নদী/ভূগর্ভস্থ জল → শোধনাগার! সেখানে বালি-কয়লা ফিল্টারে ময়লা ছেঁকে যায়, ক্লোরিন বা ফুটানোয় জীবাণু মারা যায়, তারপর পাইপে করে তোমার কলে আসে 🚰। মজার তথ্য: পানিই একমাত্র পদার্থ যা প্রকৃতিতে ৩ রূপে থাকে — বরফ ❄️, পানি 💧, বাষ্প ♨️! ভাবো তো — যে পানি আজ খেলে, হয়তো একদিন ডাইনোসরও খেয়েছিল!',
+en:'Every molecule in your glass is H₂O — 2 Hydrogen + 1 Oxygen atom ⚛️💧! Watch its journey: ocean/river water evaporates in the sun → clouds → rain → rivers/groundwater → treatment plant! There, sand-coal filters catch dirt, chlorine or boiling kills germs, then pipes carry it to your tap 🚰. Fun fact: water is the only substance existing in all 3 natural states — ice ❄️, water 💧, vapor ♨️! Think — the water you drank today might have been drunk by a dinosaur!'},
+{k:['আকাশ নীল','নীল কেন','sky blue','আকাশের রং','সূর্যাস্ত লাল'],
+bn:'আকাশ নীল দেখায় আলোর মজার খেলায় 🌈! সূর্যের সাদা আলোর ভেতরে ৭টা রঙ লুকিয়ে আছে। বাতাসের ক্ষুদ্র অণুগুলোর সাথে ধাক্কা খেয়ে নীল আলো সবচেয়ে বেশি ছড়িয়ে পড়ে (Rayleigh Scattering) — তাই চারদিকে নীল! 🌤️ আর সন্ধ্যায় আলো অনেক বেশি পথ পার হয়, নীল ছড়িয়ে শেষ হয়ে যায়, বাকি থাকে কমলা-লাল — তাই সূর্যাস্ত লাল দেখায় 🌅। ভাবো তো — চাঁদে বাতাস নেই, তাহলে চাঁদ থেকে আকাশ কেমন দেখাবে?',
+en:'The sky is blue because of a fun game of light 🌈! Sunlight hides 7 colors inside. When it crashes into tiny air molecules, blue light scatters the most (Rayleigh Scattering) — so blue fills the sky! 🌤️ At sunset, light travels a longer path; blue gets scattered away completely, leaving orange-red — that\u2019s why sunsets are red 🌅. Think — the Moon has no air; what color would the sky look from there?'},
+{k:['সালোক','photosyn','ক্লোরোফিল'],
+bn:'সালোকসংশ্লেষণ হলো সেই জাদুকরী প্রক্রিয়া যেখানে সবুজ গাছ সূর্যের আলো 🌞, পানি আর কার্বন ডাই-অক্সাইড নিয়ে নিজের খাবার (গ্লুকোজ) বানায় 🌿। এই কাজটা করে পাতার ভেতরের ক্লোরোফিল — যার কারণে গাছ সবুজ। মজার ব্যাপার, এর বর্জ্য হলো অক্সিজেন — যা আমরা শ্বাস নিই! তাহলে বলো তো, রাতে সূর্য না থাকলে গাছ কী করে?',
+en:'Photosynthesis is the magical process where green plants use sunlight ☀️, water and CO₂ to cook their own food (glucose) 🌿. Chlorophyll — the green pigment — makes it happen. Fun fact: the "waste" is oxygen, which we breathe! So what do you think plants do at night without sunlight?'},
+{k:['নিউটন','newton','গতির সূত্র','মাধ্যাকর্ষণ','gravity','জড়তা'],
+bn:'নিউটন আপেল গাছের নিচে বসে ছিলেন — আপেল পড়তে দেখে আবিষ্কার করলেন মাধ্যাকর্ষণ! 🍎 তাঁর প্রথম সূত্র: বস্তু নিজে থেকে গতি বদলাতে চায় না — একে বলে জড়তা। দ্বিতীয় সূত্র: বল = ভর × ত্বরণ (F = ma) ⚡। ফুটবলে যত জোরে শট মারবে, বল তত দ্রুত যাবে! তোমার জীবনে জড়তার একটা উদাহরণ খুঁজে বলতে পারবে?',
+en:'Newton sat under an apple tree 🍎 and a falling apple led him to gravity! First law: objects resist changes in motion — inertia. Second law: Force = mass × acceleration (F = ma) ⚡. Kick a football harder, it flies faster! Can you find inertia in your daily life?'},
+{k:['পানির চক্র','বৃষ্টি','water cycle','বাষ্প','মেঘ'],
+bn:'পানির চক্র প্রকৃতির এক চমৎকার ভ্রমণ 💧: সূর্যের তাপে নদী-সমুদ্রের পানি বাষ্প হয়ে ওড়ে (বাষ্পীভবন), আকাশে ঠান্ডা হয়ে মেঘ হয় (ঘনীভবন) ☁️, তারপর বৃষ্টি হয়ে মাটিতে নামে 🌧️। একই পানি কোটি বছর ধরে এই সাইকেলে ঘুরছে! বলো তো — ঠান্ডা গ্লাসের বাইরে পানির ফোঁটা কেন জমে?',
+en:'The water cycle is nature\u2019s endless journey 💧: the sun evaporates ocean water, it condenses into clouds ☁️, then falls as rain 🌧️. The same water has cycled for billions of years — maybe you drank dinosaur water! Why do droplets form on a cold glass?'},
+{k:['সৌরজগৎ','গ্রহ','solar','planet'],
+bn:'আমাদের সৌরজগতে ৮টা গ্রহ সূর্যকে ঘিরে ঘুরছে 🌞: বুধ, শুক্র, পৃথিবী 🌍, মঙ্গল, বৃহস্পতি, শনি (বলয়ওয়ালা!), ইউরেনাস, নেপচুন। সূর্যের টানেই সবাই ঘুরছে — একটাও হারায় না! মজার তথ্য: বৃহস্পতির ভেতরে ১৩০০টা পৃথিবী ঢুকবে! 🪐 তোমার প্রিয় গ্রহ কোনটা?',
+en:'Our solar system has 8 planets orbiting the Sun 🌞: Mercury, Venus, Earth 🌍, Mars, Jupiter, Saturn (with rings!), Uranus, Neptune. The Sun\u2019s gravity keeps them in orbit. Fun fact: 1,300 Earths fit inside Jupiter! 🪐 Which planet is your favorite?'},
+{k:['ভগ্নাংশ','fraction'],
+bn:'ভগ্নাংশ মানে পুরোটার একটা অংশ 🍰 — কেক ৪ ভাগ করে ১ ভাগ নিলে সেটা ১/৪। উপরের সংখ্যা (লব) বলে কত অংশ নিয়েছ, নিচেরটা (হর) বলে মোট ভাগ। যোগের সময় হর সমান করো: ১/২ + ১/৪ = ২/৪ + ১/৪ = ৩/৪ ✨। পিৎজা ৮ ভাগ করে ৩ ভাগ খেলে কত বাকি?',
+en:'A fraction is a part of a whole 🍰 — cut a cake into 4, take 1 → 1/4. Numerator = pieces taken, denominator = total pieces. To add, match denominators: 1/2 + 1/4 = 3/4 ✨. Eat 3 slices of an 8-slice pizza — how much is left?'},
+{k:['গ্রাফ','graph','sin','cos','ত্রিকোণমিতি'],
+bn:'sin আর cos হলো গোল ঘোরার গল্প 🎢! একটা বিন্দুকে গোল চক্করে ঘোরালে তার উচ্চতা হয় sin, পাশের দূরত্ব হয় cos। দুটোই ঢেউয়ের মতো ওঠানামা করে — তাই ঢেউ, আলো, শব্দ সবখানে এরা! sin²x + cos²x = ১ সবসময় সত্যি। ভাবো তো — ঝুলন্ত দোলার নড়াচড়াটা কোনটার মতো?',
+en:'sin and cos come from a point going in circles 🎢! Its height is sin, sideways distance is cos. Both wave up and down — that\u2019s why waves, light and sound use them! sin²x + cos²x = 1 always. Think — a swinging pendulum resembles which one?'}];
+function demoReply(q){var l=q.toLowerCase();
+for(var i=0;i<DEMO.length;i++){var d=DEMO[i];var hit=false;
+for(var j=0;j<d.k.length;j++){if(l.indexOf(d.k[j].toLowerCase())>=0){hit=true;break}}
+if(hit)return state.lang==='bn'?d.bn:d.en}
+return state.lang==='bn'
+?'দারুণ প্রশ্ন! 🌟 চলো একসাথে ভাবি — প্রশ্নটা ছোট ছোট ধাপে ভাগ করো, প্রতিটা ধাপ সহজ উদাহরণ দিয়ে বুঝি। টিপস: শিখে নিজের ভাষায় আরেকবার বললে মনে থাকে সবচেয়ে ভালো! 💡 যেকোনো প্রশ্নের আসল উত্তর পেতে ⚙️ Settings-এ ফ্রি Gemini key যোগ করো। তুমি কোন বিষয় আগে শিখতে চাও?'
+:'Great question! 🌟 Let\u2019s break it into small steps and use simple examples. Tip: explaining it back in your own words makes it stick! 💡 Add a free Gemini key in ⚙️ Settings for real answers to anything. What topic shall we master first?'}
+function getAIReply(q){
+var key=DB.get('key',null);
+if(!key){showPill('💡 Demo mode — ⚙️ তে ফ্রি key দিলে সব প্রশ্নের উত্তর!',3000);
+return sleep(100).then(function(){return demoReply(q)})}
+setStatus('Gemini…','busy');
+return geminiAsk(q,key).catch(function(e){
+var hint=geminiHint(e);
+state.keyOk=false;setStatus('Demo mode','err');
+showPill(hint,6000,true);
+return sleep(100).then(function(){return demoReply(q)});});}
+var QDEMO={
+spaceDist:{
+bn:[['পৃথিবী থেকে সূর্যের গড় দূরত্ব?',['১৪৯.৬ মিলিয়ন কিমি','১৫ মিলিয়ন কিমি','১০০০ কিমি','১ কোটি কিমি'],0],
+['সূর্যের আলো পৃথিবীতে আসতে সময় নেয়?',['৮ সেকেন্ড','৮ মিনিট ২০ সেকেন্ড','৮ ঘণ্টা','১ দিন'],1],
+['পৃথিবী থেকে চাঁদের দূরত্ব প্রায়?',['৩৮,৪০০ কিমি','৩,৮৪,৪০০ কিমি','৩৮ লক্ষ কিমি','৩ কোটি কিমি'],1],
+['চাঁদে আলো পৌঁছাতে সময় লাগে?',['১.৩ সেকেন্ড','১৩ সেকেন্ড','২ মিনিট','১ ঘণ্টা'],0],
+['অকাল্টেশনে কী ঘটে?',['গ্রহ নিভে যায়','চাঁদ গ্রহকে ঢেকে দেয়','চাঁদ ভেঙে যায়','সূর্য ঢেকে যায়'],1]],
+en:[['Average Earth→Sun distance?',['149.6 million km','15 million km','1000 km','10 million km'],0],
+['Sunlight takes to reach Earth?',['8 seconds','8 min 20 sec','8 hours','1 day'],1],
+['Earth→Moon distance is about?',['38,400 km','384,400 km','3.8 million km','30 million km'],1],
+['Light takes to reach Moon?',['1.3 seconds','13 seconds','2 minutes','1 hour'],0],
+['In an occultation, what happens?',['Planet turns off','Moon covers the planet','Moon breaks','Sun gets covered'],1]]},
+atom:{
+bn:[['পরমাণুর কেন্দ্রে কী থাকে?',['ইলেকট্রন','নিউক্লিয়াস','ফোটন','শূন্য'],1],
+['নিউক্লিয়াসে কারা থাকে?',['প্রোটন+নিউট্রন','ইলেকট্রন+প্রোটন','শুধু ইলেকট্রন','ফোটন'],0],
+['পানির (H₂O) অণুতে কয়টা হাইড্রোজেন?',['১টি','২টি','৩টি','৪টি'],1],
+['লবণের (NaCl) মধ্যে কোন দুই মৌল?',['নাইট্রোজেন+ক্লোরিন','সোডিয়াম+ক্লোরিন','সোডিয়াম+অক্সিজেন','কার্বন+ক্লোরিন'],1],
+['লেবুতে কী থাকে?',['ক্ষার','অ্যাসিড','লবণ','চিনি'],1]],
+en:[['What is at the center of an atom?',['Electron','Nucleus','Photon','Nothing'],1],
+['Nucleus contains?',['Protons+Neutrons','Electrons+Protons','Only electrons','Photons'],0],
+['How many Hydrogen in H₂O?',['1','2','3','4'],1],
+['Salt (NaCl) is made of?',['Nitrogen+Chlorine','Sodium+Chlorine','Sodium+Oxygen','Carbon+Chlorine'],1],
+['Lemon contains?',['Base','Acid','Salt','Sugar'],1]]},
+h2oJourney:{
+bn:[['পানির অণুর সংকেত?',['CO₂','H₂O','O₂','NaCl'],1],
+['এক অণু H₂O-তে কয়টা অক্সিজেন?',['১টি','২টি','৩টি','০টি'],0],
+['শোধনাগারে জীবাণু মারতে কী ব্যবহার হয়?',['চিনি','ক্লোরিন','বালি','লবণ'],1],
+['প্রকৃতিতে পানির কতটি রূপ?',['১টি','২টি','৩টি','৪টি'],2],
+['বৃষ্টির পানি মাটিতে ঢুকে কী হয়?',['সমুদ্র','ভূগর্ভস্থ জল','মেঘ','লবণ'],1]],
+en:[['Chemical formula of water?',['CO₂','H₂O','O₂','NaCl'],1],
+['How many Oxygen atoms in one H₂O?',['1','2','3','0'],0],
+['What kills germs at treatment plants?',['Sugar','Chlorine','Sand','Salt'],1],
+['How many states of water in nature?',['1','2','3','4'],2],
+['Rainwater entering ground becomes?',['Ocean','Groundwater','Clouds','Salt'],1]]},
+photosynthesis:{
+bn:[['সালোকসংশ্লেষণের প্রধান শক্তির উৎস কী?',['মাটি','সূর্যের আলো','বাতাস','পানি'],1],
+['গাছ কোন গ্যাস শোষণ করে?',['অক্সিজেন','নাইট্রোজেন','কার্বন ডাই-অক্সাইড','হিলিয়াম'],2],
+['পাতা সবুজ দেখায় কারণ?',['ক্লোরোফিল','হিমোগ্লোবিন','মেলানিন','ক্যারোটিন'],0],
+['সালোকসংশ্লেষণের উপজাত কী?',['CO₂','অক্সিজেন','নাইট্রোজেন','হাইড্রোজেন'],1],
+['গাছ তৈরি করা খাবারের নাম?',['প্রোটিন','গ্লুকোজ','চর্বি','ভিটামিন'],1]],
+en:[['Main energy source of photosynthesis?',['Soil','Sunlight','Air','Water'],1],
+['Which gas do plants absorb?',['Oxygen','Nitrogen','Carbon dioxide','Helium'],2],
+['Leaves look green because of?',['Chlorophyll','Hemoglobin','Melanin','Carotene'],0],
+['By-product of photosynthesis?',['CO₂','Oxygen','Nitrogen','Hydrogen'],1],
+['Food made by plants is?',['Protein','Glucose','Fat','Vitamin'],1]]},
+waterCycle:{
+bn:[['সূর্যের তাপে পানি বাষ্প হওয়াকে বলে?',['ঘনীভবন','বাষ্পীভবন','বৃষ্টিপাত','জমাট বাঁধা'],1],
+['মেঘ তৈরি হয় কোন প্রক্রিয়ায়?',['বাষ্পীভবন','শীতলীকরণ','ঘনীভবন','ক্ষয়'],2],
+['মেঘ থেকে পানি নামে কী রূপে?',['বরফ','শিশির','বৃষ্টি','কুয়াশা'],2],
+['পানির চক্রের শক্তির উৎস?',['চাঁদ','সূর্য','বাতাস','মাটি'],1],
+['বৃষ্টির পানি সমুদ্রে ফিরে যায় কীভাবে?',['বাষ্প হয়ে','নদী দিয়ে','মেঘ হয়ে','বরফ হয়ে'],1]],
+en:[['Water turning to vapor by sun\u2019s heat?',['Condensation','Evaporation','Precipitation','Freezing'],1],
+['Clouds form by which process?',['Evaporation','Cooling','Condensation','Erosion'],2],
+['Water falls from clouds as?',['Ice','Dew','Rain','Fog'],2],
+['Energy source of the water cycle?',['Moon','Sun','Wind','Soil'],1],
+['Rain returns to sea through?',['Vapor','Rivers','Clouds','Ice'],1]]},
+solar:{
+bn:[['সৌরজগতে গ্রহের সংখ্যা?',['৭টি','৮টি','৯টি','১০টি'],1],
+['সবচেয়ে বড় গ্রহ?',['পৃথিবী','শনি','বৃহস্পতি','নেপচুন'],2],
+['সুন্দর বলয় (রিং) কোন গ্রহে?',['মঙ্গল','শুক্র','শনি','বুধ'],2],
+['আমরা কোন গ্রহে বাস করি?',['শুক্র','মঙ্গল','পৃথিবী','বৃহস্পতি'],2],
+['"লাল গ্রহ" কোনটি?',['মঙ্গল','শুক্র','বুধ','শনি'],0]],
+en:[['Number of planets in solar system?',['7','8','9','10'],1],
+['Largest planet?',['Earth','Saturn','Jupiter','Neptune'],2],
+['Which planet has beautiful rings?',['Mars','Venus','Saturn','Mercury'],2],
+['We live on planet?',['Venus','Mars','Earth','Jupiter'],2],
+['The "Red Planet"?',['Mars','Venus','Mercury','Saturn'],0]]},
+newton:{
+bn:[['বলের সূত্র কোনটি?',['F = m/a','F = m × a','F = a/m','F = m + a'],1],
+['জড়তা কোন সূত্রে বর্ণিত?',['প্রথম','দ্বিতীয়','তৃতীয়','চতুর্থ'],0],
+['আপেল নিচে পড়ে কারণ?',['বাতাস','মাধ্যাকর্ষণ','জাদু','ভর'],1],
+['ভর ২ কেজি, ত্বরণ ৩ মি/সে² হলে বল?',['৫ N','৬ N','১ N','২৩ N'],1],
+['বলের SI একক?',['জুল','ওয়াট','নিউটন','প্যাসকেল'],2]],
+en:[['Formula of force?',['F = m/a','F = m × a','F = a/m','F = m + a'],1],
+['Inertia is described in which law?',['First','Second','Third','Fourth'],0],
+['Apple falls down because of?',['Wind','Gravity','Magic','Mass'],1],
+['Mass 2 kg, acceleration 3 m/s² → force?',['5 N','6 N','1 N','23 N'],1],
+['SI unit of force?',['Joule','Watt','Newton','Pascal'],2]]},
+fraction:{
+bn:[['১/২ + ১/৪ = ?',['২/৬','৩/৪','২/৪','১/৬'],1],
+['ভগ্নাংশের নিচের সংখ্যাকে বলে?',['লব','হর','ভাগশেষ','গুণিতক'],1],
+['৩/৪ মানে?',['৪ ভাগের ৩ ভাগ','৩ ভাগের ৪ ভাগ','৭ ভাগ','১২ ভাগ'],0],
+['পিৎজা ৮ ভাগে ৩ ভাগ খেলে বাকি?',['৩/৮','৫/৮','৮/৩','৫/৩'],1],
+['১/২ = কত শতাংশ?',['২৫%','৪০%','৫০%','৭৫%'],2]],
+en:[['1/2 + 1/4 = ?',['2/6','3/4','2/4','1/6'],1],
+['Bottom number of a fraction?',['Numerator','Denominator','Remainder','Multiple'],1],
+['3/4 means?',['3 of 4 parts','4 of 3 parts','7 parts','12 parts'],0],
+['Ate 3 of 8 pizza slices — left?',['3/8','5/8','8/3','5/3'],1],
+['1/2 = what percent?',['25%','40%','50%','75%'],2]]},
+generic:{
+bn:[['পানির রাসায়নিক সংকেত?',['CO₂','H₂O','O₂','NaCl'],1],
+['মানবদেহে হাড়ের সংখ্যা?',['২০৬','৩০৬','১০৬','৪০৬'],0],
+['সবচেয়ে দ্রুত কী?',['শব্দ','আলো','বাতাস','রকেট'],1],
+['গাছ প্রধানত কীভাবে শ্বাস নেয়?',['পাতা দিয়ে','মূল দিয়ে','কাণ্ড দিয়ে','ফুল দিয়ে'],0],
+['বাংলাদেশের রাজধানী?',['চট্টগ্রাম','ঢাকা','সিলেট','খুলনা'],1]],
+en:[['Chemical formula of water?',['CO₂','H₂O','O₂','NaCl'],1],
+['Bones in adult human body?',['206','306','106','406'],0],
+['What is fastest?',['Sound','Light','Wind','Rocket'],1],
+['Plants mainly breathe through?',['Leaves','Roots','Stem','Flowers'],0],
+['Capital of Bangladesh?',['Chattogram','Dhaka','Sylhet','Khulna'],1]]}};
+var quiz=null;
+function qOpen(){if(quiz){$('quizCard').classList.add('show');return}
+startQuizFlow()}
+function startQuizFlow(topic){
+var t2=topic||state.boardTitle||L(['মিশ্র বিষয়','Mixed topics']);
+showPill('✍️ '+L(['৫টা প্রশ্ন তৈরি হচ্ছে… অপেক্ষা করো!','Creating 5 questions… please wait!']),2200);
+setStatus(L(['কুইজ তৈরি হচ্ছে…','Creating quiz…']),'busy');
+getQuiz(t2).then(function(qs){
+quiz={title:t2,qs:qs,idx:0,answers:[],done:false};
+ $('qTitle').textContent='📝 '+t2;
+ $('quizCard').classList.add('show');qRender();
+setStatus(state.keyOk?'Gemini ✅':'Online',false);});}
+function getQuiz(topic){
+var key=DB.get('key',null);
+if(!key)return sleep(500).then(demoQuiz);
+var p=(state.lang==='bn'
+?'বাংলাদেশ ৫ম-১০ম শ্রেণির জন্য "'+topic+'" বিষয়ে ৫টা বহুনির্বাচনি প্রশ্ন বাংলায় বানাও। শুধু JSON array দাও, মার্কডাউন ছাড়া: [{"q":"প্রশ্ন","options":["...","...","...","..."],"answer":0}] — answer হলো সঠিক অপশনের index (0-3)। অপশনগুলো ছোট রাখো।'
+:'Create 5 MCQs in English for grades 5-10 on "'+topic+'". Reply ONLY with a JSON array, no markdown: [{"q":"question","options":["...","...","...","..."],"answer":0}] — answer is the correct option index (0-3). Keep options short.');
+return geminiGenerate({contents:[{role:'user',parts:[{text:p}]}]},key,2400,false)
+.then(function(raw){
+var m2=raw.match(/\[[\s\S]*\]/);
+if(!m2)throw new Error('no json');
+var arr=JSON.parse(m2[0]);
+if(!Array.isArray(arr)||arr.length<3)throw new Error('bad json');
+return arr.slice(0,5).map(function(q2){return{q:q2.q,options:q2.options.slice(0,4),answer:q2.answer|0}});})
+.catch(function(e){
+showPill('⚠️ Quiz API fail — Demo প্রশ্ন দেখানো হলো ('+geminiHint(e).slice(0,60)+')',5000,true);
+return sleep(500).then(demoQuiz);});}
+function demoQuiz(){
+var src=QDEMO[state.boardTemplate]||QDEMO.generic;
+var set=state.lang==='bn'?src.bn:src.en;
+return set.map(function(a){return{q:a[0],options:a[1],answer:a[2]}})}
+function qRender(){
+if(!quiz)return;
+var dots=$('qDots');dots.innerHTML='';
+quiz.qs.forEach(function(_,i){var d=document.createElement('div');d.className='qd';
+if(i<quiz.answers.length)d.classList.add(quiz.answers[i]===quiz.qs[i].answer?'ok':'bad');
+if(i===quiz.idx&&!quiz.done)d.classList.add('cur');
+dots.appendChild(d);});
+ $('qCount').textContent=(state.lang==='bn'?bnNum(Math.min(quiz.idx+1,quiz.qs.length)):Math.min(quiz.idx+1,quiz.qs.length))
++'/'+(state.lang==='bn'?bnNum(quiz.qs.length):quiz.qs.length);
+var body=$('qBody');
+body.innerHTML='';
+if(quiz.done){qResult();return}
+var Q=quiz.qs[quiz.idx];
+var qt=document.createElement('div');qt.className='q-text';qt.textContent=Q.q;body.appendChild(qt);
+Q.options.forEach(function(op,i){
+var b=document.createElement('button');b.className='opt';
+b.innerHTML='<b>'+String.fromCharCode(65+i)+'</b><span>'+op+'</span>';
+if(quiz.answers[quiz.idx]!=null){
+b.disabled=true;
+if(i===quiz.answers[quiz.idx])b.classList.add(quiz.answers[quiz.idx]===Q.answer?'sel-ok':'sel-bad');
+if(i===Q.answer)b.classList.add('reveal');}
+else b.onclick=function(){qAnswer(i)};
+body.appendChild(b);});
+var nav=document.createElement('div');nav.className='q-nav';
+var prev=document.createElement('button');prev.textContent='← Prev';
+prev.disabled=quiz.idx===0;prev.onclick=function(){if(quiz.idx>0){quiz.idx--;qRender()}};
+var next=document.createElement('button');next.textContent='Next →';
+next.disabled=quiz.answers[quiz.idx]==null;
+next.onclick=function(){if(quiz.idx<quiz.qs.length-1){quiz.idx++;qRender()}else qFinish()};
+nav.appendChild(prev);nav.appendChild(next);body.appendChild(nav);}
+function qAnswer(i){
+var Q=quiz.qs[quiz.idx];
+quiz.answers[quiz.idx]=i;
+var ok=i===Q.answer;
+if(ok){addGems(2);sndOk()}else sndBad();
+qRender();
+setTimeout(function(){if(quiz.idx<quiz.qs.length-1){quiz.idx++;qRender()}else qFinish()},480);}
+function qFinish(){
+quiz.done=true;
+var correct=quiz.answers.filter(function(a,i){return a===quiz.qs[i].answer}).length;
+var pct=Math.round(correct/quiz.qs.length*100);
+if(pct>=60)sndWin();
+qRender();
+addGems(correct);
+var msg=(state.lang==='bn'
+?(pct>=80?'অসাধারণ! তুমি জিনিয়াস! 🏆':pct>=60?'ভালো! আরেকটু চেষ্টা করো 💪':'আরও পড়াশোনা দরকার! হাল ছাড়ো না 📚')
+:(pct>=80?'Amazing! You\u2019re a genius! 🏆':pct>=60?'Good! Keep pushing 💪':'More study needed! Don\u2019t give up 📚'));
+var rv=document.createElement('div');rv.className='q-review';
+quiz.qs.forEach(function(Q,i){var a=quiz.answers[i],ok=a===Q.answer;
+rv.innerHTML+='<div><span class="'+(ok?'ok':'bad')+'">'+(ok?'✓':'✗')+'</span> '
++Q.q+'<br><small>'+(state.lang==='bn'?'তোমার উত্তর: ':'Your answer: ')
++String.fromCharCode(65+a)+'. '+Q.options[a]
++(ok?'':' — '+L(['সঠিক: ','Correct: '])+String.fromCharCode(65+Q.answer)+'. '+Q.options[Q.answer])
++'</small></div><hr style="border:none;border-top:1px solid #eee;margin:5px 0">';});
+var body=$('qBody');body.innerHTML='';
+var res=document.createElement('div');res.className='q-result';
+res.innerHTML='<div class="big">'+(state.lang==='bn'?bnNum(pct):pct)+'%</div>'
++'<div class="qmsg">'+msg+'</div>';
+body.appendChild(res);body.appendChild(rv);
+var btns=document.createElement('div');btns.className='q-nav';
+var done=document.createElement('button');done.textContent='✓ Done';
+done.style.background='linear-gradient(135deg,#8b5cf6,#6d28d9)';done.style.color='#fff';
+done.onclick=closeQuiz;
+btns.appendChild(done);body.appendChild(btns);}
+function closeQuiz(){$('quizCard').classList.remove('show');quiz=null}
+ $('qClose').onclick=closeQuiz;
+var bnVoice=null,enVoice=null;
+function loadVoices(){var vs=speechSynthesis.getVoices();
+bnVoice=vs.find(function(v){return v.lang.toLowerCase().indexOf('bn')===0})||null;
+enVoice=vs.find(function(v){return v.lang.toLowerCase().indexOf('en')===0&&v.lang!=='en-GB'})
+||vs.find(function(v){return v.lang.toLowerCase().indexOf('en')===0})||null}
+if('speechSynthesis' in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
+function clean(t2){return t2.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{2B00}-\u{2BFF}\u{2190}-\u{21FF}]/gu,'')
+.replace(/[*#_`>|]/g,'').replace(/\s+/g,' ').trim()}
+function speak(text){
+if(!state.ttsOn||!('speechSynthesis' in window)){state.talking=false;maybeAutoListen();return}
+try{speechSynthesis.cancel();
+var u=new SpeechSynthesisUtterance(clean(text));
+u.lang=state.lang==='bn'?'bn-IN':'en-US';
+var v=state.lang==='bn'?bnVoice:enVoice;if(v)u.voice=v;
+u.rate=1.12;u.pitch=state.lang==='bn'?1.05:1.02;
+u.onstart=function(){state.talking=true};
+u.onend=u.onerror=function(){state.talking=false;maybeAutoListen()};
+speechSynthesis.speak(u);}catch(e){state.talking=false;maybeAutoListen()}}
+var rec=null,finalTxt='';
+function startListening(auto){
+if(state.listening){stopListening();return}
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SR){showPill('🎙️ '+L(['এই ব্রাউজারে voice নেই — Chrome ব্যবহার করো','No voice in this browser — use Chrome']));return}
+try{
+if('speechSynthesis' in window)speechSynthesis.cancel();
+state.talking=false;state.userStopped=false;
+rec=new SR();rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;
+rec.lang=state.lang==='bn'?'bn-IN':'en-US';finalTxt='';
+rec.onresult=function(e){var interim='';
+for(var i=e.resultIndex;i<e.results.length;i++){var r=e.results[i];
+if(r.isFinal)finalTxt+=r[0].transcript;else interim+=r[0].transcript;}
+input.value=finalTxt||interim;};
+rec.onerror=function(e){
+if(e.error==='not-allowed'||e.error==='service-not-allowed')
+showPill('🎙️ '+L(['মাইক্রোফোন পারমিশন লাগবে! ফাইলটা ডাউনলোড করে Chrome-এ খোলো','Mic permission needed! Download the file and open in Chrome']),4500);
+else if(e.error==='no-speech')showPill('🤫 '+L(['কিছু শোনা যায়নি — আবার চেষ্টা করো','Heard nothing — try again']));};
+rec.onend=function(){state.listening=false;$('micBtn').classList.remove('active');
+if(finalTxt.trim())sendMessage(finalTxt)};
+rec.start();state.listening=true;$('micBtn').classList.add('active');
+showPill('👂 '+(auto?L(['শুনছি… (🎤 চাপলে থামবে)','Listening… (tap 🎤 to stop)']):L(['শুনছি… এখন বলো!','Listening… speak now!'])),4000);
+}catch(e){showPill('🎙️ Mic error')}}
+function stopListening(){if(rec){try{rec.stop()}catch(e){}}
+state.listening=false;$('micBtn').classList.remove('active')}
+function maybeAutoListen(){if(state.autoListen&&!state.userStopped&&!state.busy)
+setTimeout(function(){if(!state.busy&&!state.listening)startListening(true)},600)}
+function extractTopic(ans){
+var sents=ans.replace(/\*\*/g,'').match(/[^।.!?\n]+[।.!?]*/g)||[ans];
+return (sents[0]||'').trim().split(/\s+/).slice(0,7).join(' ')||L(['আজকের পাঠ',"Today's lesson"])}
+function extractPoints(ans){
+var sents=ans.replace(/\*\*/g,'').match(/[^।.!?\n]+[।.!?]*/g)||[ans];
+return sents.map(function(s){return s.trim()}).filter(function(s){return s.length>14}).slice(0,4)
+.map(function(s){return s.length>105?s.slice(0,102)+'…':s})}
+function sendMessage(text){
+text=(text||'').trim();
+if(!text||state.busy)return;
+if(/কুইজ|quiz/i.test(text)){addMsg(text,'user');input.value='';startQuizFlow();return}
+state.busy=true;state.userStopped=false;stopListening();
+setStatus('Thinking…','busy');state.thinking=true;
+addMsg(text,'user');input.value='';
+typingOn();
+getAIReply(text)
+.then(function(ans){
+typingOff();state.thinking=false;
+addMsg(ans,'teacher');
+addGems(1);
+var tpl=detectTpl(text,ans);
+showBoard(tpl,extractTopic(ans),extractPoints(ans));
+topics++;DB.set('topics',topics);updHUD();
+drawChalk(extractTopic(ans));
+speak(ans);
+showPill('🔊 '+L(['শিক্ষক ব্যাখ্যা করছেন… (🛑 = থামাও)','Teacher explaining… (🛑 to stop)']),3200);
+setStatus(state.keyOk?'Gemini ✅':'Online',false);state.busy=false;})
+.catch(function(){typingOff();setStatus('Online',false);state.busy=false;});}
+ $('sendBtn').onclick=function(){sendMessage(input.value)};
+input.addEventListener('keydown',function(e){if(e.key==='Enter')sendMessage(input.value)});
+ $('micBtn').onclick=function(){startListening(false)};
+ $('stopBtn').onclick=function(){
+state.userStopped=true;
+if('speechSynthesis' in window)speechSynthesis.cancel();
+stopListening();state.talking=false;
+showPill('🛑 '+L(['থামানো হলো','Stopped']))};
+ $('langBtn').onclick=function(){
+state.lang=state.lang==='bn'?'en':'bn';
+ $('langBtn').textContent=state.lang==='bn'?'বাং':'EN';
+input.placeholder=state.lang==='bn'?'যা জানতে চাও লিখো, বা 🎤 চেপে বলো…':'Ask anything — type or tap 🎤…';
+renderSugg();updHUD();
+showPill(state.lang==='bn'?'🌐 ভাষা: বাংলা':'🌐 Language: English')};
+ $('quizBtn').onclick=qOpen;
+ $('boardBtn').onclick=function(){hideBoard();showPill('🖼️ '+L(['বোর্ড লুকানো হলো','Board hidden']))};
+ $('closeChat').onclick=function(){$('panel').classList.add('closed');$('reopen').classList.add('show')};
+ $('reopen').onclick=function(){$('panel').classList.remove('closed');$('reopen').classList.remove('show')};
+ $('tabQuiz').onclick=qOpen;
+ $('tabBoard').onclick=function(){vBoard.visible?hideBoard():(state.boardPoints&&showBoard(state.boardTemplate,state.boardTitle,state.boardPoints))};
+ $('tabTeacher').onclick=swapTeacher;
+function runKeyTest(k,cb){
+var st=$('keyStatus');
+st.className='';st.innerHTML='⏳ Key টেস্ট হচ্ছে… এক সেকেন্ড…';
+geminiGenerate({contents:[{role:'user',parts:[{text:'Reply with only: OK'}]}]},k,600,false)
+.then(function(t){
+state.keyOk=true;LAST_GEMINI_ERROR='';
+st.innerHTML='✅ Key কাজ করছে! এখন যেকোনো প্রশ্নের আসল উত্তর আসবে 🎉';
+setStatus('Gemini ✅',false);
+if(cb)cb(true);})
+.catch(function(e){
+state.keyOk=false;
+var hint=geminiHint(e);
+st.className='bad';
+st.innerHTML='❌ '+hint+'<small>Technical: '+((e&&e.message)||'unknown').slice(0,180)+'</small>';
+setStatus('Demo mode','err');
+if(cb)cb(false);});}
+ $('settingsBtn').onclick=function(){
+ $('keyInput').value=DB.get('key',null)||'';
+ $('autoListen').checked=state.autoListen;
+ $('ttsOn').checked=state.ttsOn;
+var st=$('keyStatus');
+if(DB.get('key',null)){
+if(state.keyOk){st.className='';st.innerHTML='✅ Gemini connected!'}
+else{st.className='bad';st.innerHTML='⚠️ Key সেভ আছে কিন্তু শেষবার fail করেছিল'+(LAST_GEMINI_ERROR?'<small>'+LAST_GEMINI_ERROR.slice(0,180)+'</small>':'')+'<br>👇 Test Key চাপো'}}
+else{st.className='';st.textContent='💡 Demo mode চালু আছে — key দিলে সব প্রশ্নের আসল উত্তর আসবে'}
+ $('settingsModal').classList.remove('hidden')};
+ $('closeSettings').onclick=function(){$('settingsModal').classList.add('hidden')};
+ $('saveKey').onclick=function(){
+var k=$('keyInput').value.trim();
+if(!k){DB.set('key',null);state.keyOk=false;
+ $('keyStatus').className='';$('keyStatus').textContent='💡 Key মোছা হলো — Demo mode';return}
+DB.set('key',k);
+runKeyTest(k);};
+ $('testKey').onclick=function(){
+var k=$('keyInput').value.trim()||DB.get('key',null);
+if(!k){$('keyStatus').className='bad';$('keyStatus').textContent='❌ আগে key লিখো বা সেভ করো';return}
+DB.set('key',k);
+runKeyTest(k);};
+ $('autoListen').onchange=function(e){state.autoListen=e.target.checked;DB.set('autoListen',state.autoListen)};
+ $('ttsOn').onchange=function(e){state.ttsOn=e.target.checked;DB.set('ttsOn',state.ttsOn)};
+ $('swapTeacher').onclick=function(){swapTeacher();$('settingsModal').classList.add('hidden')};
+ $('resetProg').onclick=function(){gems=190;topics=0;streak=1;
+DB.set('gems',gems);DB.set('topics',topics);DB.set('streak',streak);updHUD();
+ $('keyStatus').textContent='🗑️ Progress reset!'};
+ $('settingsModal').addEventListener('click',function(e){
+if(e.target.id==='settingsModal')$('settingsModal').classList.add('hidden')});
+var ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
+dom.addEventListener('click',function(e){
+if(moved>8)return;
+mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;
+ray.setFromCamera(mouse,camera);
+if(avatar&&ray.intersectObject(avatar.group,true).length){
+state.waving=true;state.waveStart=perfT;
+showPill('👋 '+PRESETS[presetIdx].name+' '+L(['তোমাকে hello বললেন!','says hello!']));
+speak(state.lang==='bn'?'হ্যালো! কেমন আছো? আজ কী শিখতে চাও?':'Hello! How are you? What shall we learn today?')}});
+var clock=new THREE.Clock();var perfT=0;
+function animate(){
+requestAnimationFrame(animate);
+var dt=Math.min(clock.getDelta(),.05);perfT=clock.elapsedTime;
+var t2=perfT;
+if(intro<1){intro=Math.min(1,intro+dt/2.4);var e=easeInOut(intro);
+camDist=lerp(8.5,4.6,e);camTheta=lerp(-.55,0,e);camPhi=lerp(1.16,1.44,e);}
+updateCam();
+var A=avatar;
+if(A){
+A.group.rotation.y=Math.sin(t2*.45)*.04;
+A.torso.scale.y=1+Math.sin(t2*1.8)*.012;
+var hy=Math.sin(t2*.4)*.07,hx=state.thinking?.12:(state.talking?Math.sin(t2*6.5)*.04:0);
+A.head.rotation.y+=(hy-A.head.rotation.y)*.08;
+A.head.rotation.x+=(hx-A.head.rotation.x)*.1;
+var T={lsx:.06,lsz:-.1+Math.sin(t2*1.2)*.05,lex:-.15,rsx:.1+Math.sin(t2*1.3+1)*.06,rsz:.12,rex:-.18};
+if(state.talking)T={lsx:-.25,lsz:-.32,lex:-.5,rsx:-.75+Math.sin(t2*5.2)*.22,rsz:.2,rex:-1.15+Math.sin(t2*5.2+.9)*.25};
+if(state.thinking)T={lsx:.06,lsz:-.12,lex:-.15,rsx:-.95,rsz:.32,rex:-1.75};
+if(state.waving){T.lsz=-(1.95+Math.sin(t2*10.5)*.4);T.lex=-.35;T.lsx=0}
+var k=.12;
+A.shL.rotation.x+=(T.lsx-A.shL.rotation.x)*k;
+A.shL.rotation.z+=(T.lsz-A.shL.rotation.z)*k;
+A.elL.rotation.x+=(T.lex-A.elL.rotation.x)*k;
+A.shR.rotation.x+=(T.rsx-A.shR.rotation.x)*k;
+A.shR.rotation.z+=(T.rsz-A.shR.rotation.z)*k;
+A.elR.rotation.x+=(T.rex-A.elR.rotation.x)*k;
+var m=state.talking?(.8+Math.abs(Math.sin(t2*13))*2.4):1;
+A.mouth.scale.y+=(m-A.mouth.scale.y)*.5;
+if(state.waving&&t2-state.waveStart>2.4)state.waving=false;}
+if(vBoard.visible){if(boardAnim<1){boardAnim=Math.min(1,boardAnim+dt*1.5);
+var s=Math.max(.001,easeOutBack(boardAnim));
+vBoard.scale.set(s,s,1);boardGlow.intensity=1.3*s;}
+drawBoard(t2);}
+var now=new Date();
+hourH.rotation.z=-(((now.getHours()%12)+now.getMinutes()/60)/12)*Math.PI*2;
+minH.rotation.z=-((now.getMinutes()+now.getSeconds()/60)/60)*Math.PI*2;
+dustG.rotation.y+=dt*.012;dustG.position.y=Math.sin(t2*.4)*.06;
+renderer.render(scene,camera);}
+addEventListener('resize',function(){camera.aspect=innerWidth/innerHeight;
+camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+updHUD();renderSugg();
+setStatus('Online',false);
+animate();
+setTimeout(function(){$('welcome').classList.add('gone')},4200);
+setTimeout(function(){state.waving=true;state.waveStart=perfT},1500);
+setTimeout(function(){
+addMsg('👋 Welcome to EduMind!','teacher');
+addMsg(state.lang==='bn'
+?'আমি '+PRESETS[presetIdx].name+', তোমার 3D ক্লাসরুমের শিক্ষক! 🏫\n\nযেকোনো পড়ার প্রশ্ন করো — গলায় বলো 🎤 বা লিখো। আমি animated ছবি-বোর্ড বানিয়ে বুঝিয়ে দেবো, আর শেষে 🎯 কুইজও নেব!\n\nনিচের সাজেশন চিপে চাপ দিয়ে শুরু করো! ✨'
+:'I\u2019m '+PRESETS[presetIdx].name+', your 3D classroom teacher! 🏫\n\nAsk any study question — by voice 🎤 or text. I\u2019ll explain with animated visual boards, then take a 🎯 quiz!\n\nTap a suggestion below to start! ✨','teacher');
+},1900);
+})();
+</script>
+</body>
+</html>
