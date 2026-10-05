@@ -1,3 +1,4 @@
+[README (2).md](https://github.com/user-attachments/files/33077717/README.2.md)
 <div align="center">
 
 <img src="assets/banner.svg" alt="EduMind banner" width="100%"/>
@@ -80,7 +81,7 @@ The board picks one of these animated scenes from what you ask:
 
 ---
 
-## ⚙️ How it works
+## 🔄 How it works
 
 ```mermaid
 flowchart LR
@@ -139,7 +140,7 @@ Demo mode is on by default, so you can try everything right away.
 
 ---
 
-## 🛠️ Tech stack
+## 🧰 Tech stack
 
 | Layer | Technology |
 |---|---|
@@ -153,9 +154,9 @@ Demo mode is on by default, so you can try everything right away.
 
 ---
 
-## 👨‍💻 Author
+## 👤 Author
 
-**Suman**
+**Sarowar Suman**
 Software Engineering, Daffodil International University, Bangladesh
 
 ---
